@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Credito Salute SQ</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Pilot Bar Francofonte</p>
+          <h1>Credito Salute SQ</h1>
+        </div>
+        <div class="topbar__summary" aria-live="polite">
+          <span id="supabaseStatus">Supabase non collegato</span>
+          <span id="headerClients">0 clienti</span>
+          <span id="headerConfirmed">0,00 euro SQ confermati</span>
+        </div>
+      </header>
+
+      <section class="panel auth-panel">
+        <div class="section-heading auth-panel__head">
+          <div>
+            <p class="eyebrow">Accesso</p>
+            <h2>Accesso web app</h2>
+          </div>
+          <div class="status-pill" id="authRole">Accesso pubblico</div>
+        </div>
+        <form id="authForm" class="form auth-form">
+          <label>
+            Email
+            <input required type="email" name="email" autocomplete="email" placeholder="nome@dominio.it">
+          </label>
+          <label>
+            Password
+            <input required type="password" name="password" autocomplete="current-password" placeholder="Password">
+          </label>
+          <div class="auth-actions full">
+            <button class="primary" type="submit" id="authSubmit">Accedi</button>
+            <button class="secondary" type="button" id="authLogout">Esci</button>
+          </div>
+          <p class="form-status full" id="authStatus">Inserisci email e password per accedere alla web app.</p>
+        </form>
+        <details class="signup-box">
+          <summary>Crea account cliente</summary>
+          <form id="signupForm" class="form signup-form">
+            <label>
+              Nome
+              <input required name="firstName" autocomplete="given-name" placeholder="Mario">
+            </label>
+            <label>
+              Cognome
+              <input required name="lastName" autocomplete="family-name" placeholder="Rossi">
+            </label>
+            <label>
+              Telefono
+              <input required name="phone" inputmode="tel" autocomplete="tel" placeholder="333 0000000">
+            </label>
+            <label>
+              Comune
+              <input required name="city" value="Francofonte">
+            </label>
+            <label>
+              Email
+              <input required type="email" name="email" autocomplete="email" placeholder="nome@dominio.it">
+            </label>
+            <label>
+              Password
+              <input required type="password" name="password" autocomplete="new-password" minlength="8" placeholder="Minimo 8 caratteri">
+            </label>
+            <label>
+              Ripeti password
+              <input required type="password" name="passwordConfirm" autocomplete="new-password" minlength="8" placeholder="Ripeti password">
+            </label>
+            <label class="checkbox">
+              <input required type="checkbox" name="contactConsent">
+              <span>Consenso al contatto per gestione Credito SQ</span>
+            </label>
+            <label class="checkbox full">
+              <input required type="checkbox" name="rulesConsent">
+              <span>Accetto il regolamento del pilot e confermo che il credito SQ riguarda sconti su appuntamento, non prestazioni urgenti.</span>
+            </label>
+            <button class="primary full" type="submit" id="signupSubmit">Crea account cliente</button>
+            <p class="form-status full" id="signupStatus">Registrazione riservata ai clienti del pilot.</p>
+          </form>
+        </details>
+      </section>
+
+      <nav class="tabs" id="appTabs" aria-label="Sezioni applicazione" hidden>
+        <button class="tab-button is-active" type="button" data-tab="cliente">Cliente</button>
+        <button class="tab-button" type="button" data-tab="bar">Verifica SQ</button>
+        <button class="tab-button" type="button" data-tab="salute">Salute Quotidiana</button>
+        <button class="tab-button" type="button" data-tab="report">Report</button>
+        <button class="tab-button" type="button" data-tab="regole">Regole</button>
+      </nav>
+
+      <main id="appMain" hidden>
+        <section class="tab-panel is-active" id="cliente" aria-labelledby="tab-cliente">
+          <div class="grid two">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Iscrizione</p>
+                <h2>Nuovo cliente SQ</h2>
+              </div>
+              <form id="customerForm" class="form">
+                <label>
+                  Nome
+                  <input required name="firstName" autocomplete="given-name" placeholder="Mario">
+                </label>
+                <label>
+                  Cognome
+                  <input required name="lastName" autocomplete="family-name" placeholder="Rossi">
+                </label>
+                <label>
+                  Telefono
+                  <input required name="phone" inputmode="tel" autocomplete="tel" placeholder="333 0000000">
+                </label>
+                <label>
+                  Comune
+                  <input required name="city" value="Francofonte">
+                </label>
+                <label class="checkbox">
+                  <input required type="checkbox" name="contactConsent">
+                  <span>Consenso al contatto per gestione Credito SQ</span>
+                </label>
+                <label class="checkbox">
+                  <input required type="checkbox" name="rulesConsent">
+                  <span>Accetto il regolamento del pilot</span>
+                </label>
+                <button class="primary" type="submit">Registra cliente</button>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Saldo</p>
+                <h2>Situazione cliente</h2>
+              </div>
+              <label>
+                Cliente
+                <select id="customerSelect"></select>
+              </label>
+              <div class="balance-grid" id="balanceCards">
+                <article>
+                  <span>Confermato</span>
+                  <strong>0,00 euro SQ</strong>
+                </article>
+                <article>
+                  <span>In verifica</span>
+                  <strong>0,00 euro SQ</strong>
+                </article>
+                <article>
+                  <span>Totale storico</span>
+                  <strong>0,00 euro SQ</strong>
+                </article>
+              </div>
+              <div class="mini-list" id="customerHistory"></div>
+              <div class="mini-list" id="customerRedemptionHistory"></div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Scontrino</p>
+              <h2>Carica una consumazione</h2>
+            </div>
+            <form id="receiptForm" class="form receipt-form" novalidate>
+              <label>
+                Cliente
+                <select required name="customerId" id="receiptCustomerSelect"></select>
+              </label>
+              <label>
+                Data scontrino
+                <input required type="date" name="receiptDate">
+              </label>
+              <label>
+                Ora scontrino
+                <input required type="time" name="receiptTime">
+              </label>
+              <label>
+                Numero documento
+                <input required name="documentNumber" placeholder="Es. 183">
+              </label>
+              <label>
+                Importo consumazione valida
+                <input required type="number" min="0.01" step="0.01" name="amount" placeholder="10,00">
+              </label>
+              <label>
+                Foto scontrino
+                <input type="file" accept="image/*" capture="environment" name="receiptImage">
+              </label>
+              <div class="camera-tool full" id="cameraTool">
+                <div class="camera-tool__actions">
+                  <button type="button" class="secondary" id="openCamera">Apri fotocamera guidata</button>
+                  <button type="button" class="secondary" id="captureReceipt" disabled>Scatta foto</button>
+                  <button type="button" class="secondary" id="closeCamera" disabled>Chiudi fotocamera</button>
+                </div>
+                <div class="camera-preview" id="cameraPreview" hidden>
+                  <video id="cameraVideo" autoplay playsinline muted></video>
+                  <div class="camera-frame" aria-hidden="true"></div>
+                </div>
+                <canvas id="cameraCanvas" hidden></canvas>
+                <p class="camera-status" id="cameraStatus">Usa la fotocamera guidata se il caricamento normale legge male lo scontrino.</p>
+              </div>
+              <div class="ocr-box full" id="receiptOcrBox">
+                <div class="ocr-box__head">
+                  <strong>Lettura automatica scontrino</strong>
+                  <button type="button" class="secondary" id="rerunOcr">Rileggi foto</button>
+                </div>
+                <p id="receiptOcrStatus">Carica una foto per provare a compilare automaticamente data, ora, documento e importo.</p>
+                <details id="receiptOcrDetails">
+                  <summary>Testo letto dalla foto</summary>
+                  <pre id="receiptOcrText"></pre>
+                </details>
+              </div>
+              <label class="checkbox full">
+                <input type="checkbox" name="validConsumption">
+                <span>Confermo che l'importo riguarda solo consumazioni del bar, senza scommesse, giocate, ricariche o vincite.</span>
+              </label>
+              <div class="calculation full" id="receiptCalculation">Credito generato: 0,00 euro SQ</div>
+              <p class="form-status full" id="receiptSubmitStatus">Pronto per l'invio dopo foto, dati e conferma consumazione.</p>
+              <button class="primary full" type="submit">Invia scontrino</button>
+            </form>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="bar" aria-labelledby="tab-bar">
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Salute Quotidiana</p>
+              <h2>Verifica scontrini e anomalie</h2>
+            </div>
+            <div class="notice">
+              Gli scontrini validi vengono confermati da Salute Quotidiana. Qui restano solo anomalie, correzioni e controlli manuali SQ.
+            </div>
+            <div class="toolbar">
+              <select id="statusFilter" aria-label="Filtra per stato">
+                <option value="all">Tutti gli stati</option>
+                <option value="pending">In verifica</option>
+                <option value="confirmed">Confermati</option>
+                <option value="rejected">Rifiutati</option>
+              </select>
+            </div>
+            <div class="receipt-list" id="receiptList"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="salute" aria-labelledby="tab-salute">
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Salute Quotidiana</p>
+              <h2>Registra prestazione</h2>
+            </div>
+            <form id="redemptionForm" class="form">
+              <label>
+                Cliente
+                <select required name="customerId" id="redemptionCustomerSelect"></select>
+              </label>
+              <label>
+                Prestazione
+                <select required name="service">
+                  <option value="Controllo parametri base a domicilio">Controllo parametri base - 20 euro</option>
+                  <option value="Controllo parametri completo a domicilio">Controllo parametri completo - 25 euro</option>
+                  <option value="Parametri + breve educazione sanitaria">Parametri + educazione - 30 euro</option>
+                </select>
+              </label>
+              <label>
+                Credito SQ da usare
+                <input required name="creditUsed" type="number" min="0.01" step="0.01" placeholder="10,00">
+              </label>
+              <label>
+                Beneficiario
+                <select name="beneficiary">
+                  <option value="se">Se stesso</option>
+                  <option value="familiare">Familiare</option>
+                  <option value="donazione">Donazione</option>
+                </select>
+              </label>
+              <label>
+                Nota beneficiario
+                <input name="beneficiaryNote" placeholder="Es. madre, padre, persona indicata">
+              </label>
+              <button class="primary" type="submit">Registra utilizzo</button>
+            </form>
+            <div class="mini-list" id="redemptionHistory"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="report" aria-labelledby="tab-report">
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">30 giorni</p>
+              <h2>Report pilot</h2>
+            </div>
+            <div class="metric-grid" id="reportMetrics"></div>
+            <div class="toolbar">
+              <button type="button" class="secondary" id="exportJson">Esporta JSON</button>
+              <button type="button" class="secondary" id="exportCsv">Esporta CSV scontrini</button>
+              <button type="button" class="secondary danger" id="clearDemo">Svuota dati</button>
+            </div>
+            <textarea id="exportOutput" readonly placeholder="Qui comparira' l'export copiabile."></textarea>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="regole" aria-labelledby="tab-regole">
+          <section class="panel rules">
+            <div class="section-heading">
+              <p class="eyebrow">Pilot</p>
+              <h2>Regole operative</h2>
+            </div>
+            <ol>
+              <li>Il 3% delle consumazioni valide diventa Credito Salute SQ personale.</li>
+              <li>Il credito diventa utilizzabile quando i controlli SQ automatici lo confermano; le anomalie restano in Verifica SQ.</li>
+              <li>Valgono solo consumazioni del bar: caffe', colazioni, bibite, snack, aperitivi e prodotti del bar.</li>
+              <li>Non valgono scommesse, giocate, vincite, ricariche o servizi esterni.</li>
+              <li>Il credito SQ puo' essere usato per se', per un familiare o come donazione registrata.</li>
+              <li>1 euro SQ vale 1 euro di sconto su prestazioni Salute Quotidiana.</li>
+              <li>Se il cliente ha credito sufficiente, la prestazione puo' essere interamente coperta dagli SQ.</li>
+              <li>Se il credito non basta, il cliente usa gli SQ disponibili e paga solo la differenza.</li>
+              <li>Le prestazioni sono su appuntamento e non sostituiscono medico, guardia medica, 112 o Pronto Soccorso.</li>
+            </ol>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js?v=2"></script>
+    <script src="app.js?v=32"></script>
+  </body>
+</html>
