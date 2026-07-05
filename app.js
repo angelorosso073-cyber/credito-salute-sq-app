@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v32-riconoscimento-cliente-email-profilo";
+const APP_VERSION = "v33-report-bar";
 const CREDIT_RATE = 0.03;
 const BAR_NAME = "Bar pilota Francofonte";
 const MAX_PILOT_CUSTOMERS = 20;
@@ -32,7 +32,7 @@ const ROLE_LABELS = {
 const ROLE_TAB_ACCESS = {
   guest: [],
   cliente: ["cliente", "regole"],
-  bar: ["cliente", "regole"],
+  bar: ["bar_report", "regole"],
   salute_quotidiana: ["cliente", "bar", "salute", "report", "regole"],
   admin: ["cliente", "bar", "salute", "report", "regole"]
 };
@@ -64,6 +64,7 @@ const initialState = {
   receipts: [],
   redemptions: [],
   balances: {},
+  barReport: null,
   nextCustomerNumber: 1
 };
 
@@ -119,6 +120,9 @@ const el = {
   cameraStatus: document.querySelector("#cameraStatus"),
   receiptList: document.querySelector("#receiptList"),
   statusFilter: document.querySelector("#statusFilter"),
+  barReportMetrics: document.querySelector("#barReportMetrics"),
+  barReportReceipts: document.querySelector("#barReportReceipts"),
+  barReportStatus: document.querySelector("#barReportStatus"),
   reportMetrics: document.querySelector("#reportMetrics"),
   redemptionHistory: document.querySelector("#redemptionHistory"),
   headerClients: document.querySelector("#headerClients"),
@@ -199,7 +203,7 @@ async function setAuthState(session) {
       authProfile = await createCustomerProfileForUser(authSession.user);
     }
     authRole = resolveAuthRole(authProfile, authSession.user);
-    if (authRole === "cliente") {
+    if (authRole === "cliente" || authRole === "bar") {
       resetPilotData();
     }
   } else {
@@ -302,7 +306,7 @@ async function syncDataForCurrentRole() {
 }
 
 function shouldLoadRemoteData() {
-  return authRole === "cliente" || authRole === "salute_quotidiana" || authRole === "admin";
+  return authRole === "cliente" || authRole === "bar" || authRole === "salute_quotidiana" || authRole === "admin";
 }
 
 function resetPilotData() {
@@ -405,6 +409,11 @@ async function refreshPilotDataFromSupabase() {
   render();
   suppressLocalPersistence = true;
   try {
+    if (authRole === "bar") {
+      await loadBarReportFromSupabase();
+      return;
+    }
+
     if (authRole === "cliente") {
       await linkCurrentCustomerToProfile();
     }
@@ -416,6 +425,67 @@ async function refreshPilotDataFromSupabase() {
     suppressLocalPersistence = false;
     pilotDataLoading = false;
     render();
+  }
+}
+
+async function loadBarReportFromSupabase() {
+  if (!supabaseClient) return;
+
+  setBarReportStatus("Caricamento report bar in corso.", "loading");
+  const { data, error } = await supabaseClient.rpc("report_bar_corrente_pilot");
+
+  if (error) {
+    console.error("Errore caricamento report bar:", error);
+    state.barReport = null;
+    setBarReportStatus(`Report bar non disponibile: ${error.message}`, "error");
+    return;
+  }
+
+  state.barReport = normalizeBarReport(data);
+  setBarReportStatus("Report bar aggiornato.", "success");
+  saveState();
+  render();
+}
+
+function normalizeBarReport(data) {
+  const report = Array.isArray(data) ? data[0] : data;
+  const metrics = report?.metrics || report || {};
+  const receipts = report?.recent_receipts || report?.scontrini_recenti || [];
+
+  return {
+    barName: cleanText(report?.bar_name || metrics.bar_name || BAR_NAME),
+    updatedAt: report?.updated_at || new Date().toISOString(),
+    metrics: {
+      customers: Number(metrics.customers || metrics.clienti_iscritti || 0),
+      receipts: Number(metrics.receipts || metrics.scontrini_caricati || 0),
+      pending: Number(metrics.pending || metrics.scontrini_in_verifica || 0),
+      confirmed: Number(metrics.confirmed || metrics.scontrini_confermati || 0),
+      rejected: Number(metrics.rejected || metrics.scontrini_rifiutati || 0),
+      confirmedAmount: Number(metrics.confirmed_amount || metrics.consumazioni_confermate || 0),
+      generatedCredit: Number(metrics.generated_credit || metrics.credito_generato || 0),
+      anomalies: Number(metrics.anomalies || metrics.anomalie || 0)
+    },
+    receipts: receipts.map((receipt) => ({
+      id: receipt.id,
+      code: cleanText(receipt.codice_cliente || receipt.customer_code || "Cliente"),
+      date: receipt.data_scontrino || receipt.receipt_date || "",
+      time: receipt.ora_scontrino || receipt.receipt_time || "",
+      documentNumber: receipt.numero_documento || receipt.document_number || "",
+      amount: Number(receipt.importo_dichiarato || receipt.amount || 0),
+      credit: Number(receipt.credito_generato || receipt.credit || 0),
+      status: mapSupabaseReceiptStatus(receipt.stato || receipt.status),
+      duplicate: Boolean(receipt.avviso_duplicato || receipt.duplicate)
+    }))
+  };
+}
+
+function setBarReportStatus(message, status) {
+  if (!el.barReportStatus) return;
+  el.barReportStatus.textContent = message;
+  if (status) {
+    el.barReportStatus.dataset.status = status;
+  } else {
+    delete el.barReportStatus.dataset.status;
   }
 }
 
@@ -1691,6 +1761,7 @@ function render() {
   renderCustomerOptions();
   renderCustomerDetail();
   renderReceiptList();
+  renderBarReport();
   renderReport();
   renderRedemptionHistory();
   renderHeader();
@@ -1770,6 +1841,13 @@ function canAccessTab(tabId) {
 }
 
 function renderHeader() {
+  if (authRole === "bar" && state.barReport?.metrics) {
+    const metrics = state.barReport.metrics;
+    el.headerClients.textContent = `${metrics.customers} clienti collegati`;
+    el.headerConfirmed.textContent = `${formatMoney(metrics.generatedCredit)} euro SQ generati`;
+    return;
+  }
+
   const confirmed = state.receipts
     .filter((receipt) => receipt.status === "confirmed")
     .reduce((sum, receipt) => sum + receipt.credit, 0);
@@ -1989,6 +2067,70 @@ function renderReceiptList() {
       </article>
     `;
   }).join("");
+}
+
+function renderBarReport() {
+  if (!el.barReportMetrics || !el.barReportReceipts) {
+    return;
+  }
+
+  if (!canAccessTab("bar_report")) {
+    el.barReportMetrics.innerHTML = "";
+    el.barReportReceipts.innerHTML = "";
+    return;
+  }
+
+  const report = state.barReport;
+  if (!report) {
+    el.barReportMetrics.innerHTML = `
+      <article>
+        <span>Report bar</span>
+        <strong>In attesa</strong>
+      </article>
+    `;
+    el.barReportReceipts.innerHTML = `<div class="empty">Accedi come titolare bar collegato al bar pilota per vedere il riepilogo.</div>`;
+    return;
+  }
+
+  const metrics = report.metrics || {};
+  const metricRows = [
+    ["Clienti collegati", metrics.customers],
+    ["Scontrini caricati", metrics.receipts],
+    ["In verifica", metrics.pending],
+    ["Confermati", metrics.confirmed],
+    ["Rifiutati", metrics.rejected],
+    ["Consumazioni confermate", `${formatMoney(metrics.confirmedAmount)} euro`],
+    ["Credito generato", `${formatMoney(metrics.generatedCredit)} euro SQ`],
+    ["Anomalie", metrics.anomalies]
+  ];
+
+  el.barReportMetrics.innerHTML = metricRows.map(([label, value]) => `
+    <article>
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </article>
+  `).join("");
+
+  const receipts = report.receipts || [];
+  if (!receipts.length) {
+    el.barReportReceipts.innerHTML = `<div class="empty">Nessuno scontrino del bar da mostrare.</div>`;
+    return;
+  }
+
+  el.barReportReceipts.innerHTML = receipts.map((receipt) => `
+    <article class="bar-receipt-row">
+      <div>
+        <strong>${escapeHtml(receipt.code || "Cliente")}</strong>
+        <p>${formatDate(receipt.date)} ${escapeHtml(String(receipt.time || "").slice(0, 5))} - Doc. ${escapeHtml(receipt.documentNumber || "-")}</p>
+      </div>
+      <div class="bar-receipt-row__amount">
+        <span>${formatMoney(receipt.amount)} euro</span>
+        <span>${formatMoney(receipt.credit)} euro SQ</span>
+      </div>
+      <span class="status-pill status-${receipt.status}">${statusLabel(receipt.status)}</span>
+      ${receipt.duplicate ? `<span class="status-pill status-pending">Possibile duplicato</span>` : ""}
+    </article>
+  `).join("");
 }
 
 async function confirmReceipt(id) {

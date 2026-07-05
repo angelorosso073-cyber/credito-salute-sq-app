@@ -43,13 +43,13 @@ Serve connessione internet per:
 La versione attuale dell'app e':
 
 ```text
-v32-riconoscimento-cliente-email-profilo
+v33-report-bar
 ```
 
 In `index.html` viene caricato:
 
 ```html
-<script src="app.js?v=32"></script>
+<script src="app.js?v=33"></script>
 ```
 
 Se il browser mostra comportamenti vecchi, premere `Ctrl + F5`.
@@ -143,6 +143,14 @@ Il titolare puo' vedere:
 5. totale consumazioni confermate;
 6. credito SQ generato nel bar;
 7. andamento generale del pilot.
+
+Stato attuale:
+
+1. il ruolo `titolare_bar` viene normalizzato a `bar` nel frontend;
+2. il bar vede solo `Report Bar` e `Regole`;
+3. `Report Bar` usa la RPC Supabase `report_bar_corrente_pilot`;
+4. il report mostra solo dati aggregati e ultimi scontrini minimi;
+5. per attivarlo in Supabase eseguire `docs/supabase-report-bar-corrente-pilot.sql`.
 
 Il titolare non deve vedere:
 

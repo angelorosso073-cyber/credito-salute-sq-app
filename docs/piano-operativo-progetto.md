@@ -29,7 +29,7 @@ File principali:
 Versione frontend attuale:
 
 ```text
-v32-riconoscimento-cliente-email-profilo
+v33-report-bar
 ```
 
 Controllo eseguito:
@@ -97,7 +97,7 @@ nascondere il form Nuovo cliente SQ e mostrare saldo/storico senza tendina clien
 Intervento completato nella versione:
 
 ```text
-v32-riconoscimento-cliente-email-profilo
+v33-report-bar
 ```
 
 Risultato:
@@ -143,11 +143,14 @@ Criterio di verifica:
 
 ### Step 2 - Allineamento ruolo bar
 
+Stato: completato in `v33-report-bar`.
+
 Obiettivo:
 
 1. mantenere `titolare_bar` come ruolo database;
 2. normalizzarlo a `bar` solo nel frontend;
-3. aggiungere tab/report bar dedicato.
+3. aggiungere tab/report bar dedicato;
+4. usare la RPC `report_bar_corrente_pilot` per non esporre dati sanitari.
 
 Criterio di verifica:
 
@@ -156,6 +159,12 @@ Criterio di verifica:
 3. vede solo aggregati e scontrini autorizzati.
 
 ### Step 3 - Report bar separato
+
+Stato: completato in `v33-report-bar`, da attivare in Supabase eseguendo:
+
+```text
+docs/supabase-report-bar-corrente-pilot.sql
+```
 
 Obiettivo:
 

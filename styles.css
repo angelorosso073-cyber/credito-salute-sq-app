@@ -100,7 +100,7 @@ h2 {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   margin: 8px 0 18px;
 }
@@ -200,6 +200,10 @@ button {
   margin-bottom: 16px;
 }
 
+.section-heading--compact {
+  margin: 18px 0 10px;
+}
+
 .form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -292,6 +296,10 @@ button:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 14px 0;
+}
+
+.metric-grid--bar {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .balance-grid article,
@@ -514,7 +522,8 @@ button:focus {
 }
 
 .receipt-list,
-.mini-list {
+.mini-list,
+.bar-receipt-list {
   display: grid;
   gap: 10px;
 }
@@ -533,6 +542,36 @@ button:focus {
   border-radius: 8px;
   padding: 12px;
   background: #fff;
+}
+
+.bar-receipt-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(140px, auto) auto auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.bar-receipt-row p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bar-receipt-row__amount {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: right;
+}
+
+.bar-receipt-row__amount span:first-child {
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .receipt-card__head {
@@ -694,8 +733,18 @@ textarea {
   .form,
   .receipt-form,
   .balance-grid,
-  .metric-grid {
+  .metric-grid,
+  .metric-grid--bar,
+  .bar-receipt-row {
     grid-template-columns: 1fr;
+  }
+
+  .bar-receipt-row {
+    align-items: stretch;
+  }
+
+  .bar-receipt-row__amount {
+    text-align: left;
   }
 
   .full {

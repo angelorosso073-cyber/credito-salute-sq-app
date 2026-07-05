@@ -90,6 +90,7 @@
 
       <nav class="tabs" id="appTabs" aria-label="Sezioni applicazione" hidden>
         <button class="tab-button is-active" type="button" data-tab="cliente">Cliente</button>
+        <button class="tab-button" type="button" data-tab="bar_report">Report Bar</button>
         <button class="tab-button" type="button" data-tab="bar">Verifica SQ</button>
         <button class="tab-button" type="button" data-tab="salute">Salute Quotidiana</button>
         <button class="tab-button" type="button" data-tab="report">Report</button>
@@ -226,6 +227,24 @@
           </section>
         </section>
 
+        <section class="tab-panel" id="bar_report" aria-labelledby="tab-bar-report">
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Titolare bar</p>
+              <h2>Report Bar</h2>
+            </div>
+            <div class="notice">
+              Vista limitata al bar collegato: conteggi, importi e anomalie scontrini. Non include prestazioni, beneficiari o note sanitarie.
+            </div>
+            <p class="form-status" id="barReportStatus">Accedi come titolare bar per caricare il report.</p>
+            <div class="metric-grid metric-grid--bar" id="barReportMetrics"></div>
+            <div class="section-heading section-heading--compact">
+              <h2>Ultimi scontrini del bar</h2>
+            </div>
+            <div class="bar-receipt-list" id="barReportReceipts"></div>
+          </section>
+        </section>
+
         <section class="tab-panel" id="bar" aria-labelledby="tab-bar">
           <section class="panel">
             <div class="section-heading">
@@ -330,6 +349,6 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=32"></script>
+    <script src="app.js?v=33"></script>
   </body>
 </html>
