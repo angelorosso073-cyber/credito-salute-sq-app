@@ -5,12 +5,14 @@
   --ink: #17231d;
   --muted: #5d6a62;
   --line: #d7e2db;
+  --line-strong: #b9c9c0;
+  --surface-raised: #fbfcfb;
   --green: #1f7a4d;
   --green-dark: #155b39;
   --blue: #245a86;
   --amber: #946000;
   --red: #a93232;
-  --shadow: 0 14px 34px rgba(23, 35, 29, 0.08);
+  --shadow: 0 4px 8px rgba(23, 35, 29, 0.07);
 }
 
 * {
@@ -42,6 +44,8 @@ textarea {
   align-items: end;
   justify-content: space-between;
   gap: 16px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line-strong);
   padding: 20px 0 18px;
 }
 
@@ -103,12 +107,16 @@ h2 {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   margin: 8px 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px;
+  background: #eef4f0;
 }
 
 .tab-button,
 button {
   min-height: 42px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
   background: var(--surface);
   color: var(--ink);
@@ -150,10 +158,14 @@ button {
 .panel {
   margin-bottom: 16px;
   padding: 18px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+.panel + .panel {
+  margin-top: 18px;
 }
 
 .auth-panel {
@@ -198,6 +210,8 @@ button {
 
 .section-heading {
   margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
 }
 
 .section-heading--compact {
@@ -226,7 +240,7 @@ input,
 textarea {
   width: 100%;
   min-height: 42px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
   padding: 9px 10px;
   background: #fff;
@@ -281,7 +295,7 @@ button:focus {
 
 .notice {
   margin-bottom: 14px;
-  border: 1px solid rgba(36, 90, 134, 0.25);
+  border: 1px solid rgba(36, 90, 134, 0.38);
   border-radius: 8px;
   padding: 11px 12px;
   background: #f0f6fb;
@@ -290,12 +304,44 @@ button:focus {
   line-height: 1.35;
 }
 
+.request-alert {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 13px 14px;
+  background: var(--surface);
+}
+
+.request-alert strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.request-alert span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.request-alert--active {
+  border-color: rgba(148, 96, 0, 0.48);
+  background: #fff8ea;
+}
+
+.request-alert--empty {
+  background: #fbfcfb;
+}
+
 .balance-grid,
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 14px 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
 }
 
 .metric-grid--bar {
@@ -305,7 +351,7 @@ button:focus {
 .balance-grid article,
 .metric-grid article {
   min-height: 82px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 12px;
   background: var(--surface-soft);
@@ -331,7 +377,7 @@ button:focus {
 }
 
 .calculation {
-  border: 1px dashed var(--green);
+  border: 1px solid rgba(31, 122, 77, 0.42);
   border-radius: 6px;
   padding: 12px;
   background: #f1faf4;
@@ -339,9 +385,58 @@ button:focus {
   font-weight: 800;
 }
 
+.credit-request-area {
+  margin: 14px 0 0;
+}
+
+.credit-request-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(31, 122, 77, 0.48);
+  border-radius: 8px;
+  padding: 14px;
+  background: #f1faf4;
+}
+
+.credit-request-card span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.credit-request-card strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.credit-request-card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.credit-request-form {
+  margin: 12px 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--surface-raised);
+}
+
+.credit-request-row .receipt-card__head {
+  margin-bottom: 8px;
+}
+
 .form-status {
   margin: 0;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
   padding: 10px 12px;
   background: #fbfcfb;
@@ -369,14 +464,14 @@ button:focus {
 }
 
 .ocr-box {
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 12px;
   background: #fbfcfb;
 }
 
 .camera-tool {
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 12px;
   background: var(--surface);
@@ -528,6 +623,12 @@ button:focus {
   gap: 10px;
 }
 
+.mini-list:not(:empty) {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
 .history-title {
   margin-top: 4px;
   color: var(--muted);
@@ -538,7 +639,7 @@ button:focus {
 
 .receipt-card,
 .history-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 12px;
   background: #fff;
@@ -549,7 +650,7 @@ button:focus {
   grid-template-columns: minmax(180px, 1fr) minmax(140px, auto) auto auto;
   align-items: center;
   gap: 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 12px;
   background: #fff;
@@ -579,6 +680,8 @@ button:focus {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
 }
 
 .receipt-card__meta {
@@ -741,6 +844,11 @@ textarea {
 
   .bar-receipt-row {
     align-items: stretch;
+  }
+
+  .credit-request-card {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .bar-receipt-row__amount {

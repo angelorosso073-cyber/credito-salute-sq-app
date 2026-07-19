@@ -1,6 +1,7 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v33-report-bar";
-const CREDIT_RATE = 0.03;
+const APP_VERSION = "v44-prepara-utilizzo-fix";
+const CREDIT_RATE = 0.15;
+const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
 const MAX_PILOT_CUSTOMERS = 20;
 const AUTO_APPROVE_MAX_AMOUNT = 30;
@@ -59,10 +60,19 @@ const services = {
   }
 };
 
+const REQUEST_STATUSES = {
+  inviata: "Inviata",
+  in_contatto: "In contatto",
+  confermata: "Confermata",
+  rifiutata: "Rifiutata",
+  annullata: "Annullata"
+};
+
 const initialState = {
   customers: [],
   receipts: [],
   redemptions: [],
+  creditRequests: [],
   balances: {},
   barReport: null,
   nextCustomerNumber: 1
@@ -103,6 +113,13 @@ const el = {
   receiptCustomerSelect: document.querySelector("#receiptCustomerSelect"),
   redemptionCustomerSelect: document.querySelector("#redemptionCustomerSelect"),
   balanceCards: document.querySelector("#balanceCards"),
+  creditRequestArea: document.querySelector("#creditRequestArea"),
+  creditRequestForm: document.querySelector("#creditRequestForm"),
+  creditRequestService: document.querySelector("#creditRequestService"),
+  creditRequestBeneficiaryType: document.querySelector("#creditRequestBeneficiaryType"),
+  creditRequestStatus: document.querySelector("#creditRequestStatus"),
+  customerCreditRequests: document.querySelector("#customerCreditRequests"),
+  creditRequestAlert: document.querySelector("#creditRequestAlert"),
   customerHistory: document.querySelector("#customerHistory"),
   customerRedemptionHistory: document.querySelector("#customerRedemptionHistory"),
   receiptCalculation: document.querySelector("#receiptCalculation"),
@@ -125,6 +142,8 @@ const el = {
   barReportStatus: document.querySelector("#barReportStatus"),
   reportMetrics: document.querySelector("#reportMetrics"),
   redemptionHistory: document.querySelector("#redemptionHistory"),
+  redemptionStatus: document.querySelector("#redemptionStatus"),
+  creditRequestQueue: document.querySelector("#creditRequestQueue"),
   headerClients: document.querySelector("#headerClients"),
   headerConfirmed: document.querySelector("#headerConfirmed"),
   supabaseStatus: document.querySelector("#supabaseStatus"),
@@ -421,6 +440,7 @@ async function refreshPilotDataFromSupabase() {
     await loadPilotReceiptsFromSupabase();
     await loadPilotRedemptionsFromSupabase();
     await loadPilotBalancesFromSupabase();
+    await loadCreditRequestsFromSupabase();
   } finally {
     suppressLocalPersistence = false;
     pilotDataLoading = false;
@@ -685,6 +705,53 @@ function mapSupabaseRedemption(redemption) {
   };
 }
 
+async function loadCreditRequestsFromSupabase() {
+  if (!supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from("richieste_utilizzo_credito_app_pilot")
+    .select("id,cliente_id,codice_cliente,cliente_nome,cliente_cognome,prestazione,prezzo_prestazione,credito_richiesto,beneficiario_tipo,beneficiario_nome,beneficiario_telefono,giorno_preferito,fascia_oraria_preferita,consenso_contatto,note_cliente,stato,note_interne_sq,created_at,updated_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.warn("Richieste utilizzo credito non disponibili:", error);
+    return;
+  }
+
+  const requests = filterItemsForCurrentCustomer(data.map(mapSupabaseCreditRequest));
+  if (authRole === "cliente") {
+    state.creditRequests = requests;
+  } else {
+    requests.forEach((request) => upsertCreditRequest(request));
+  }
+  saveState();
+  render();
+}
+
+function mapSupabaseCreditRequest(request) {
+  return {
+    id: request.id,
+    customerId: request.cliente_id,
+    customerCode: request.codice_cliente || "",
+    customerName: cleanText(`${request.cliente_nome || ""} ${request.cliente_cognome || ""}`),
+    service: request.prestazione,
+    servicePrice: Number(request.prezzo_prestazione || 0),
+    creditRequested: Number(request.credito_richiesto || 0),
+    beneficiaryType: request.beneficiario_tipo || "se",
+    beneficiaryName: request.beneficiario_nome || "",
+    beneficiaryPhone: request.beneficiario_telefono || "",
+    preferredDate: request.giorno_preferito || "",
+    preferredTime: request.fascia_oraria_preferita || "",
+    contactConsent: Boolean(request.consenso_contatto),
+    note: request.note_cliente || "",
+    status: request.stato || "inviata",
+    internalNote: request.note_interne_sq || "",
+    createdAt: request.created_at,
+    updatedAt: request.updated_at
+  };
+}
+
 function upsertCustomer(customer) {
   const index = state.customers.findIndex((item) => item.id === customer.id || item.phone === customer.phone);
   if (index >= 0) {
@@ -704,6 +771,15 @@ function upsertReceipt(receipt) {
     };
   } else {
     state.receipts.unshift(receipt);
+  }
+}
+
+function upsertCreditRequest(request) {
+  const index = state.creditRequests.findIndex((item) => item.id === request.id);
+  if (index >= 0) {
+    state.creditRequests[index] = { ...state.creditRequests[index], ...request };
+  } else {
+    state.creditRequests.unshift(request);
   }
 }
 
@@ -736,6 +812,7 @@ function wireEvents() {
   el.customerForm.addEventListener("submit", handleCustomerSubmit);
   el.receiptForm.addEventListener("submit", handleReceiptSubmit);
   el.redemptionForm.addEventListener("submit", handleRedemptionSubmit);
+  el.creditRequestForm.addEventListener("submit", handleCreditRequestSubmit);
 
   el.receiptForm.amount.addEventListener("input", updateReceiptCalculation);
   el.receiptForm.receiptImage.addEventListener("change", handleReceiptImageChange);
@@ -744,6 +821,10 @@ function wireEvents() {
   el.captureReceipt.addEventListener("click", captureGuidedReceipt);
   el.closeCamera.addEventListener("click", closeGuidedCamera);
   el.customerSelect.addEventListener("change", renderCustomerDetail);
+  el.creditRequestService.addEventListener("change", updateCreditRequestStatusText);
+  el.creditRequestBeneficiaryType.addEventListener("change", syncCreditRequestBeneficiaryFields);
+  el.redemptionCustomerSelect.addEventListener("change", updateRedemptionStatusText);
+  el.redemptionForm.service.addEventListener("change", updateRedemptionStatusText);
   el.statusFilter.addEventListener("change", renderReceiptList);
 
   el.exportJson.addEventListener("click", exportJson);
@@ -838,15 +919,30 @@ async function handleSignupSubmit(event) {
     citta: city
   };
 
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      data: metadata
-    }
-  });
-
-  if (el.signupSubmit) el.signupSubmit.disabled = false;
+  let data = null;
+  let error = null;
+  try {
+    const result = await withTimeout(
+      supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata
+        }
+      }),
+      AUTH_REQUEST_TIMEOUT_MS,
+      "Supabase non ha risposto in tempo. Controlla la connessione e riprova."
+    );
+    data = result.data;
+    error = result.error;
+  } catch (signupError) {
+    console.error("Errore o timeout registrazione Supabase:", signupError);
+    setSignupMessage(`Registrazione non completata: ${signupError.message}`, "error");
+    showToast("Registrazione non completata.");
+    return;
+  } finally {
+    if (el.signupSubmit) el.signupSubmit.disabled = false;
+  }
 
   if (error) {
     console.error("Errore registrazione Supabase:", error);
@@ -906,6 +1002,17 @@ function setSignupMessage(message, status) {
   } else {
     delete el.signupStatus.dataset.status;
   }
+}
+
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    window.clearTimeout(timeoutId);
+  });
 }
 
 function prefillCustomerFormFromAuth() {
@@ -1190,12 +1297,13 @@ async function submitReceipt(event) {
 
   const duplicate = findDuplicateReceipt(receipt);
   if (duplicate) {
-    receipt.note = "Possibile duplicato: stesso bar, data, ora, numero documento e importo.";
+    stopReceiptSubmit("Questo scontrino risulta gia' caricato: stessa data, numero documento e importo.");
+    return;
   }
 
   const validation = validateReceiptAutomatically(receipt, duplicate);
   receipt.autoValidation = validation;
-  receipt.status = validation.approved ? "confirmed" : "pending";
+  receipt.status = "pending";
   receipt.note = validation.message;
 
   setReceiptSubmitStatus("Invio scontrino a Supabase in corso.", "loading");
@@ -1213,8 +1321,8 @@ async function submitReceipt(event) {
   resetOcrBox();
   updateReceiptCalculation();
   render();
-  setReceiptSubmitStatus(validation.approved ? "Scontrino confermato automaticamente su Supabase." : "Scontrino salvato su Supabase in controllo SQ.", "success");
-  showToast(validation.approved ? "Scontrino confermato automaticamente su Supabase." : "Scontrino salvato su Supabase in controllo SQ.");
+  setReceiptSubmitStatus("Scontrino salvato su Supabase in controllo SQ.", "success");
+  showToast("Scontrino salvato su Supabase in controllo SQ.");
   loadPilotReceiptsFromSupabase();
   loadPilotBalancesFromSupabase();
 }
@@ -1306,7 +1414,7 @@ function validateReceiptAutomatically(receipt, duplicate) {
     warnings,
     status: approved ? "confermato" : "in_verifica",
     message: approved
-      ? "Confermato automaticamente dai controlli SQ."
+      ? "Controlli automatici superati. Conferma finale richiesta a Salute Quotidiana."
       : `Verifica SQ richiesta: ${issues.join("; ")}.`
   };
 }
@@ -1330,11 +1438,11 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     p_numero_documento: receipt.documentNumber,
     p_importo_dichiarato: receipt.amount,
     p_importo_ocr: receipt.ocr?.fields?.amount || null,
-    p_importo_verificato: validation.approved ? receipt.amount : null,
+    p_importo_verificato: null,
     p_credito_generato: receipt.credit,
-    p_stato: validation.status,
+    p_stato: "in_verifica",
     p_avviso_duplicato: Boolean(duplicate),
-    p_motivo_controllo: validation.approved ? null : validation.message
+    p_motivo_controllo: validation.message
   });
 
   if (error) {
@@ -1655,21 +1763,27 @@ async function handleRedemptionSubmit(event) {
   const service = form.get("service");
   const serviceConfig = services[service];
   const servicePrice = serviceConfig?.price || 0;
-  const creditUsed = parseMoney(form.get("creditUsed"));
   const balance = getBalances(customerId).confirmed;
+  const fieldCredit = parseMoney(form.get("creditUsed"));
+  const creditUsed = roundMoney(Math.min(fieldCredit || balance, servicePrice));
 
-  if (!creditUsed || creditUsed <= 0) {
-    showToast("Inserisci credito da usare.");
+  if (!serviceConfig) {
+    setRedemptionMessage("Seleziona una prestazione valida.", "error");
     return;
   }
 
-  if (creditUsed > balance) {
-    showToast("Credito confermato insufficiente.");
+  if (!creditUsed || creditUsed <= 0) {
+    setRedemptionMessage("Il cliente non ha credito SQ da scalare in questo utilizzo. Se vuoi erogare la prestazione senza credito, gestiscila fuori dal programma SQ.", "error");
+    return;
+  }
+
+  if (balance > 0 && creditUsed > balance) {
+    setRedemptionMessage(`Credito SQ insufficiente. Per questo cliente risultano disponibili ${formatMoney(balance)} euro SQ.`, "error");
     return;
   }
 
   if (creditUsed > servicePrice) {
-    showToast("Il credito non puo' superare il prezzo della prestazione.");
+    setRedemptionMessage(`Il credito SQ non puo' superare il prezzo della prestazione: ${formatMoney(servicePrice)} euro.`, "error");
     return;
   }
 
@@ -1695,9 +1809,50 @@ async function handleRedemptionSubmit(event) {
   saveState();
   event.currentTarget.reset();
   render();
+  setRedemptionMessage("Utilizzo credito registrato. Il saldo cliente e' stato aggiornato.", "success");
   showToast("Utilizzo credito registrato.");
   loadPilotRedemptionsFromSupabase();
   loadPilotBalancesFromSupabase();
+}
+
+function updateRedemptionStatusText() {
+  if (!el.redemptionStatus || !el.redemptionForm) return;
+
+  const customerId = el.redemptionCustomerSelect?.value || "";
+  const service = el.redemptionForm.service?.value || "";
+  const servicePrice = services[service]?.price || 0;
+  const balance = customerId ? getBalances(customerId).confirmed : 0;
+  const preparedRequest = getPreparedRedemptionRequest();
+  const preparedCredit = preparedRequest ? Number(preparedRequest.creditRequested || 0) : 0;
+  const suggestedCredit = Math.min(balance > 0 ? balance : preparedCredit, servicePrice);
+  const difference = Math.max(servicePrice - suggestedCredit, 0);
+
+  if (!customerId || !servicePrice) {
+    if (el.redemptionForm.creditUsed) {
+      el.redemptionForm.creditUsed.value = "";
+    }
+    setRedemptionMessage("Seleziona cliente e prestazione: qui vedrai credito massimo utilizzabile e differenza stimata.", "");
+    return;
+  }
+
+  if (el.redemptionForm.creditUsed) {
+    el.redemptionForm.creditUsed.value = suggestedCredit > 0 ? suggestedCredit.toFixed(2) : "";
+  }
+
+  const source = preparedRequest && balance <= 0
+    ? "credito indicato dalla richiesta"
+    : "saldo SQ disponibile";
+  setRedemptionMessage(`${source}: ${formatMoney(balance > 0 ? balance : preparedCredit)} euro. Credito SQ applicato: ${formatMoney(suggestedCredit)} euro. Differenza stimata da pagare: ${formatMoney(difference)} euro.`, "");
+}
+
+function setRedemptionMessage(message, status) {
+  if (!el.redemptionStatus) return;
+  el.redemptionStatus.textContent = message;
+  if (status) {
+    el.redemptionStatus.dataset.status = status;
+  } else {
+    delete el.redemptionStatus.dataset.status;
+  }
 }
 
 async function saveRedemptionToSupabase(redemption) {
@@ -1724,13 +1879,137 @@ async function saveRedemptionToSupabase(redemption) {
   return { ok: true, id: data };
 }
 
+async function handleCreditRequestSubmit(event) {
+  event.preventDefault();
+
+  if (authRole !== "cliente") {
+    showToast("La richiesta credito e' disponibile solo per il cliente.");
+    return;
+  }
+
+  const customerId = getCurrentCustomerIdForRole();
+  if (!customerId) {
+    setCreditRequestMessage("Prima completa il profilo cliente.", "error");
+    return;
+  }
+
+  const form = new FormData(event.currentTarget);
+  const service = cleanText(form.get("service"));
+  const serviceConfig = services[service];
+  const beneficiaryType = form.get("beneficiaryType") || "se";
+  const beneficiaryName = cleanText(form.get("beneficiaryName"));
+  const balance = getBalances(customerId).confirmed;
+  const hasActiveRequest = state.creditRequests.some((request) => (
+    request.customerId === customerId
+    && ["inviata", "in_contatto", "confermata"].includes(request.status)
+  ));
+
+  if (hasActiveRequest) {
+    setCreditRequestMessage("Hai gia' una richiesta attiva. Attendi il controllo di Salute Quotidiana.", "error");
+    return;
+  }
+
+  if (!serviceConfig) {
+    setCreditRequestMessage("Seleziona una prestazione valida.", "error");
+    return;
+  }
+
+  if (balance <= 0) {
+    setCreditRequestMessage("Serve almeno un credito SQ confermato per inviare una richiesta.", "error");
+    return;
+  }
+
+  if (beneficiaryType === "altra_persona" && !beneficiaryName) {
+    setCreditRequestMessage("Inserisci il nome del beneficiario.", "error");
+    return;
+  }
+
+  if (!form.get("contactConsent")) {
+    setCreditRequestMessage("Serve il consenso al contatto per inviare la richiesta.", "error");
+    return;
+  }
+
+  const request = {
+    id: crypto.randomUUID(),
+    customerId,
+    service,
+    servicePrice: serviceConfig.price,
+    creditRequested: roundMoney(Math.min(balance, serviceConfig.price)),
+    beneficiaryType,
+    beneficiaryName,
+    beneficiaryPhone: cleanText(form.get("beneficiaryPhone")),
+    preferredDate: form.get("preferredDate") || "",
+    preferredTime: form.get("preferredTime") || "",
+    contactConsent: true,
+    note: cleanText(form.get("note")),
+    status: "inviata",
+    createdAt: new Date().toISOString()
+  };
+
+  setCreditRequestMessage("Invio richiesta in corso.", "loading");
+  const supabaseResult = await saveCreditRequestToSupabase(request);
+  if (!supabaseResult.ok) {
+    setCreditRequestMessage(`Richiesta non inviata: ${supabaseResult.message}`, "error");
+    return;
+  }
+
+  request.id = supabaseResult.id || request.id;
+  upsertCreditRequest(request);
+  saveState();
+  event.currentTarget.reset();
+  syncCreditRequestBeneficiaryFields();
+  render();
+  setCreditRequestMessage("Richiesta inviata. Salute Quotidiana ti ricontattera' dopo controllo.", "success");
+  showToast("Richiesta utilizzo credito inviata.");
+  loadCreditRequestsFromSupabase();
+}
+
+async function saveCreditRequestToSupabase(request) {
+  if (!supabaseClient) {
+    return { ok: true, id: request.id };
+  }
+
+  const { data, error } = await supabaseClient.rpc("crea_richiesta_utilizzo_credito_pilot", {
+    p_cliente_id: request.customerId,
+    p_prestazione: request.service,
+    p_prezzo_prestazione: request.servicePrice,
+    p_beneficiario_tipo: request.beneficiaryType,
+    p_beneficiario_nome: request.beneficiaryName || null,
+    p_beneficiario_telefono: request.beneficiaryPhone || null,
+    p_giorno_preferito: request.preferredDate || null,
+    p_fascia_oraria_preferita: request.preferredTime || null,
+    p_consenso_contatto: request.contactConsent,
+    p_note_cliente: request.note || null
+  });
+
+  if (error) {
+    console.error("Errore richiesta utilizzo credito Supabase:", error);
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, id: data };
+}
+
+function setCreditRequestMessage(message, status) {
+  if (!el.creditRequestStatus) return;
+  el.creditRequestStatus.textContent = message;
+  if (status) {
+    el.creditRequestStatus.dataset.status = status;
+  } else {
+    delete el.creditRequestStatus.dataset.status;
+  }
+}
+
 function findDuplicateReceipt(receipt) {
+  const documentNumber = cleanText(receipt.documentNumber).toLowerCase();
+  const amount = roundMoney(receipt.amount);
+
   return state.receipts.find((item) => (
     item.barName === receipt.barName &&
     item.receiptDate === receipt.receiptDate &&
-    item.receiptTime === receipt.receiptTime &&
-    item.documentNumber.toLowerCase() === receipt.documentNumber.toLowerCase() &&
-    Number(item.amount) === Number(receipt.amount)
+    cleanText(item.documentNumber).toLowerCase() === documentNumber &&
+    roundMoney(item.amount) === amount &&
+    item.status !== "rejected"
   ));
 }
 
@@ -1764,6 +2043,10 @@ function render() {
   renderBarReport();
   renderReport();
   renderRedemptionHistory();
+  renderCreditRequestAlert();
+  renderCreditRequestQueue();
+  renderSaluteTabBadge();
+  updateRedemptionStatusText();
   renderHeader();
 }
 
@@ -1892,6 +2175,8 @@ function renderCustomerDetail() {
 
   if (!customerId) {
     el.balanceCards.innerHTML = balanceMarkup(0, 0, 0);
+    renderCreditRequestArea("", { confirmed: 0 });
+    renderCustomerCreditRequests("");
     el.customerHistory.innerHTML = `<div class="empty">Nessun cliente registrato.</div>`;
     el.customerRedemptionHistory.innerHTML = "";
     return;
@@ -1899,6 +2184,8 @@ function renderCustomerDetail() {
 
   const balances = getBalances(customerId);
   el.balanceCards.innerHTML = balanceMarkup(balances.confirmed, balances.pending, balances.totalGenerated);
+  renderCreditRequestArea(customerId, balances);
+  renderCustomerCreditRequests(customerId);
 
   const history = state.receipts
     .filter((receipt) => receipt.customerId === customerId)
@@ -1930,6 +2217,139 @@ function renderCustomerDetail() {
     <div class="history-title">Utilizzi credito</div>
     ${redemptions}
   ` : "";
+}
+
+function renderCreditRequestArea(customerId, balances) {
+  if (!el.creditRequestArea || !el.creditRequestForm) return;
+
+  if (authRole !== "cliente" || !customerId) {
+    el.creditRequestArea.innerHTML = "";
+    el.creditRequestForm.hidden = true;
+    return;
+  }
+
+  const availableServices = getRequestableServices(balances.confirmed);
+  const activeRequest = state.creditRequests.find((request) => (
+    request.customerId === customerId
+    && ["inviata", "in_contatto", "confermata"].includes(request.status)
+  ));
+
+  if (activeRequest) {
+    el.creditRequestArea.innerHTML = `
+      <article class="credit-request-card">
+        <div>
+          <span>Richiesta credito</span>
+          <strong>Richiesta gia' presente: ${requestStatusLabel(activeRequest.status)}</strong>
+          <p>Salute Quotidiana controllera' la richiesta e ti ricontattera'.</p>
+        </div>
+      </article>
+    `;
+    el.creditRequestForm.hidden = true;
+    return;
+  }
+
+  if (!availableServices.length) {
+    el.creditRequestArea.innerHTML = "";
+    el.creditRequestForm.hidden = true;
+    return;
+  }
+
+  el.creditRequestArea.innerHTML = `
+    <article class="credit-request-card">
+      <div>
+        <span>Credito SQ disponibile</span>
+        <strong>Puoi usare il credito come sconto su una prestazione</strong>
+        <p>Se il credito non copre tutto il costo, potrai pagare la differenza. La richiesta non conferma automaticamente un appuntamento.</p>
+      </div>
+      <button type="button" class="primary" onclick="toggleCreditRequestForm()">Richiedi utilizzo credito</button>
+    </article>
+  `;
+
+  renderCreditRequestServiceOptions(availableServices);
+  syncCreditRequestBeneficiaryFields();
+}
+
+function renderCreditRequestServiceOptions(availableServices) {
+  if (!el.creditRequestService) return;
+
+  const currentValue = el.creditRequestService.value;
+  el.creditRequestService.innerHTML = availableServices.map(([name, config]) => (
+    `<option value="${escapeHtml(name)}">${escapeHtml(name)} - ${formatMoney(config.price)} euro SQ</option>`
+  )).join("");
+
+  restoreSelectValue(el.creditRequestService, currentValue);
+  updateCreditRequestStatusText();
+}
+
+function getRequestableServices(confirmedBalance) {
+  if (confirmedBalance <= 0) {
+    return [];
+  }
+
+  return Object.entries(services);
+}
+
+function toggleCreditRequestForm() {
+  if (!el.creditRequestForm) return;
+  el.creditRequestForm.hidden = !el.creditRequestForm.hidden;
+  if (!el.creditRequestForm.hidden) {
+    updateCreditRequestStatusText();
+  }
+}
+
+function updateCreditRequestStatusText() {
+  const service = el.creditRequestService?.value;
+  const price = services[service]?.price;
+  const customerId = getCurrentCustomerIdForRole();
+  const balance = customerId ? getBalances(customerId).confirmed : 0;
+  const creditApplied = Math.min(balance, price || 0);
+  const difference = Math.max((price || 0) - creditApplied, 0);
+
+  if (!price) {
+    setCreditRequestMessage("La richiesta sara' controllata e confermata da Salute Quotidiana.", "");
+    return;
+  }
+
+  setCreditRequestMessage(`Costo: ${formatMoney(price)} euro. Credito SQ stimato: ${formatMoney(creditApplied)} euro. Differenza stimata: ${formatMoney(difference)} euro.`, "");
+}
+
+function syncCreditRequestBeneficiaryFields() {
+  if (!el.creditRequestForm) return;
+  const isOther = el.creditRequestBeneficiaryType?.value === "altra_persona";
+  const beneficiaryName = el.creditRequestForm.elements.beneficiaryName;
+  const beneficiaryPhone = el.creditRequestForm.elements.beneficiaryPhone;
+
+  if (beneficiaryName) {
+    beneficiaryName.required = isOther;
+    beneficiaryName.closest("label").hidden = !isOther;
+  }
+
+  if (beneficiaryPhone) {
+    beneficiaryPhone.closest("label").hidden = !isOther;
+  }
+}
+
+function renderCustomerCreditRequests(customerId) {
+  if (!el.customerCreditRequests) return;
+
+  const requests = state.creditRequests
+    .filter((request) => request.customerId === customerId)
+    .slice(0, 5);
+
+  if (!requests.length) {
+    el.customerCreditRequests.innerHTML = "";
+    return;
+  }
+
+  el.customerCreditRequests.innerHTML = `
+    <div class="history-title">Richieste utilizzo credito</div>
+    ${requests.map((request) => `
+      <article class="history-card">
+        <strong>${escapeHtml(request.service)} - ${requestStatusLabel(request.status)}</strong>
+        <p>${formatMoney(request.creditRequested)} euro SQ richiesti, differenza stimata ${formatMoney(Math.max(request.servicePrice - request.creditRequested, 0))} euro${request.preferredDate ? `, giorno preferito ${formatDate(request.preferredDate)}` : ""}.</p>
+      </article>
+    `).join("")}
+  `;
 }
 
 function syncCustomerRoleUi() {
@@ -2308,6 +2728,166 @@ function renderRedemptionHistory() {
   }).join("");
 }
 
+function renderCreditRequestQueue() {
+  if (!el.creditRequestQueue) return;
+
+  if (!canAccessTab("salute")) {
+    el.creditRequestQueue.innerHTML = "";
+    return;
+  }
+
+  if (!state.creditRequests.length) {
+    el.creditRequestQueue.innerHTML = `<div class="empty">Nessuna richiesta utilizzo credito da gestire.</div>`;
+    return;
+  }
+
+  el.creditRequestQueue.innerHTML = state.creditRequests.slice(0, 20).map((request) => {
+    const customer = getCustomer(request.customerId);
+    const customerLabel = customer
+      ? `${escapeHtml(customer.code)} - ${escapeHtml(customer.firstName)} ${escapeHtml(customer.lastName)}`
+      : escapeHtml(request.customerName || request.customerCode || "Cliente");
+    const beneficiary = request.beneficiaryType === "altra_persona"
+      ? `${escapeHtml(request.beneficiaryName || "Altra persona")}${request.beneficiaryPhone ? ` - ${escapeHtml(request.beneficiaryPhone)}` : ""}`
+      : "Cliente stesso";
+
+    return `
+      <article class="history-card credit-request-row">
+        <div class="receipt-card__head">
+          <div>
+            <strong>${customerLabel}</strong>
+        <p>${escapeHtml(request.service)} - ${formatMoney(request.creditRequested)} euro SQ richiesti, differenza stimata ${formatMoney(Math.max(request.servicePrice - request.creditRequested, 0))} euro</p>
+          </div>
+          <span class="status-pill status-${requestStatusTone(request.status)}">${requestStatusLabel(request.status)}</span>
+        </div>
+        <p>Beneficiario: ${beneficiary}</p>
+        <p>Preferenza: ${request.preferredDate ? formatDate(request.preferredDate) : "giorno da concordare"}${request.preferredTime ? `, ${escapeHtml(request.preferredTime)}` : ""}</p>
+        ${request.note ? `<p>Nota cliente: ${escapeHtml(request.note)}</p>` : ""}
+        ${request.internalNote ? `<p>Nota SQ: ${escapeHtml(request.internalNote)}</p>` : ""}
+        <div class="receipt-card__actions">
+          <button type="button" class="secondary" onclick="updateCreditRequestStatus('${request.id}', 'in_contatto')">Prendi in carico</button>
+          <button type="button" class="primary" onclick="prepareRedemptionFromRequest('${request.id}')">Prepara utilizzo</button>
+          <button type="button" class="secondary" onclick="updateCreditRequestStatus('${request.id}', 'rifiutata')">Rifiuta</button>
+          <button type="button" class="secondary" onclick="updateCreditRequestStatus('${request.id}', 'annullata')">Annulla</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function prepareRedemptionFromRequest(id) {
+  if (!requireAccess("salute")) return;
+
+  const request = state.creditRequests.find((item) => item.id === id);
+  if (!request || !el.redemptionForm) return;
+
+  const balance = getBalances(request.customerId).confirmed;
+  const requestCredit = Number(request.creditRequested || 0);
+  const availableCredit = balance > 0 ? Math.min(balance, requestCredit || request.servicePrice) : requestCredit;
+  const creditToUse = Math.min(availableCredit, request.servicePrice);
+
+  restoreSelectValue(el.redemptionCustomerSelect, request.customerId);
+  el.redemptionForm.dataset.preparedRequestId = request.id;
+  el.redemptionForm.service.value = request.service;
+  el.redemptionForm.creditUsed.value = creditToUse ? creditToUse.toFixed(2) : "";
+  el.redemptionForm.beneficiary.value = request.beneficiaryType === "altra_persona" ? "familiare" : "se";
+  el.redemptionForm.beneficiaryNote.value = request.beneficiaryType === "altra_persona"
+    ? cleanText(`${request.beneficiaryName || ""} ${request.beneficiaryPhone ? `- ${request.beneficiaryPhone}` : ""}`)
+    : "";
+
+  updateRedemptionStatusText();
+  el.redemptionForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  showToast("Form utilizzo preparato. Controlla i dati e registra solo se la prestazione e' da applicare.");
+}
+
+function getPreparedRedemptionRequest() {
+  const preparedRequestId = el.redemptionForm?.dataset?.preparedRequestId || "";
+  if (!preparedRequestId) return null;
+  return state.creditRequests.find((request) => request.id === preparedRequestId) || null;
+}
+
+function getOpenCreditRequests() {
+  return state.creditRequests.filter((request) => ["inviata", "in_contatto"].includes(request.status));
+}
+
+function renderCreditRequestAlert() {
+  if (!el.creditRequestAlert) return;
+
+  if (!canAccessTab("salute")) {
+    el.creditRequestAlert.innerHTML = "";
+    el.creditRequestAlert.hidden = true;
+    return;
+  }
+
+  const openRequests = getOpenCreditRequests();
+  el.creditRequestAlert.hidden = false;
+
+  if (!openRequests.length) {
+    el.creditRequestAlert.className = "request-alert request-alert--empty";
+    el.creditRequestAlert.innerHTML = `
+      <strong>Nessuna nuova richiesta credito</strong>
+      <span>Le richieste inviate dai clienti compariranno qui sopra il form di registrazione prestazione.</span>
+    `;
+    return;
+  }
+
+  el.creditRequestAlert.className = "request-alert request-alert--active";
+  el.creditRequestAlert.innerHTML = `
+    <strong>${openRequests.length} richiesta${openRequests.length === 1 ? "" : "e"} credito da gestire</strong>
+    <span>Controlla la coda richieste prima di registrare eventuali utilizzi credito.</span>
+  `;
+}
+
+function renderSaluteTabBadge() {
+  const saluteTab = Array.from(el.tabs || []).find((button) => button.dataset.tab === "salute");
+  if (!saluteTab) return;
+
+  const count = canAccessTab("salute") ? getOpenCreditRequests().length : 0;
+  saluteTab.textContent = count ? `Salute Quotidiana (${count})` : "Salute Quotidiana";
+}
+
+async function updateCreditRequestStatus(id, status) {
+  if (!requireAccess("salute")) return;
+
+  const request = state.creditRequests.find((item) => item.id === id);
+  if (!request) return;
+
+  const note = prompt("Nota interna Salute Quotidiana:", request.internalNote || "");
+  if (note === null) return;
+
+  const result = await updateCreditRequestStatusOnSupabase(id, status, cleanText(note));
+  if (!result.ok) {
+    showToast(`Richiesta non aggiornata: ${result.message}`);
+    return;
+  }
+
+  request.status = status;
+  request.internalNote = cleanText(note);
+  request.updatedAt = new Date().toISOString();
+  saveState();
+  render();
+  showToast(`Richiesta aggiornata: ${requestStatusLabel(status)}.`);
+  loadCreditRequestsFromSupabase();
+}
+
+async function updateCreditRequestStatusOnSupabase(id, status, note) {
+  if (!supabaseClient) {
+    return { ok: true };
+  }
+
+  const { data, error } = await supabaseClient.rpc("aggiorna_richiesta_utilizzo_credito_pilot", {
+    p_id: id,
+    p_stato: status,
+    p_note_interne_sq: note || null
+  });
+
+  if (error) {
+    console.error("Errore aggiornamento richiesta credito Supabase:", error);
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, id: data };
+}
+
 function ocrSummaryMarkup(ocr) {
   if (!ocr || !ocr.text) return "";
 
@@ -2608,6 +3188,21 @@ function statusLabel(status) {
     rejected: "Rifiutato"
   };
   return labels[status] || status;
+}
+
+function requestStatusLabel(status) {
+  return REQUEST_STATUSES[status] || status;
+}
+
+function requestStatusTone(status) {
+  const tones = {
+    inviata: "pending",
+    in_contatto: "pending",
+    confermata: "confirmed",
+    rifiutata: "rejected",
+    annullata: "rejected"
+  };
+  return tones[status] || "pending";
 }
 
 function cleanText(value) {

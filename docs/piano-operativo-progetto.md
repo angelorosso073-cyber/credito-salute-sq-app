@@ -10,7 +10,7 @@ Obiettivo pratico:
 
 1. Il cliente si registra in autonomia.
 2. Il cliente carica lo scontrino.
-3. Il sistema calcola il 3% come Credito SQ.
+3. Il sistema calcola il 15% come Credito SQ.
 4. Lo scontrino viene verificato.
 5. Salute Quotidiana usa il credito confermato su prestazioni semplici e non urgenti.
 

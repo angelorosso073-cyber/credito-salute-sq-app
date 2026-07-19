@@ -222,7 +222,7 @@ Il credito non va modificato manualmente come saldo libero.
 Regola:
 
 ```text
-credito generato = importo verificato * 0.03
+credito generato = importo verificato * 0.15
 ```
 
 Saldo cliente:

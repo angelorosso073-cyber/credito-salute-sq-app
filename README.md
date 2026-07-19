@@ -43,13 +43,13 @@ Serve connessione internet per:
 La versione attuale dell'app e':
 
 ```text
-v33-report-bar
+v44-prepara-utilizzo-fix
 ```
 
 In `index.html` viene caricato:
 
 ```html
-<script src="app.js?v=33"></script>
+<script src="app.js?v=44"></script>
 ```
 
 Se il browser mostra comportamenti vecchi, premere `Ctrl + F5`.
@@ -189,7 +189,7 @@ Salute Quotidiana puo':
 8. Prova a leggere automaticamente data, ora, numero documento e importo dalla foto.
 9. Permette correzione manuale dei dati letti.
 10. Calcola il 3% come Credito SQ.
-11. Tiene il credito in verifica.
+11. Tiene sempre il credito in verifica fino al controllo di Salute Quotidiana.
 12. Permette verifica e gestione scontrini lato Salute Quotidiana.
 13. Registra utilizzo del credito su prestazioni.
 14. Esporta dati JSON o CSV per i ruoli autorizzati.
@@ -238,7 +238,47 @@ Non comunicare come prima fase:
 4. Non usare la web app per emergenze, diagnosi, referti o cure.
 5. In caso di sintomi seri, dolore toracico, difficolta' respiratoria, svenimento o peggioramento clinico, indirizzare a medico, guardia medica, 112/118 o Pronto Soccorso.
 
-## 11. Prossima correzione consigliata
+## 11. Sicurezza Supabase
+
+Prima di usare il pilot con clienti reali, eseguire in Supabase SQL Editor:
+
+```text
+docs/supabase-hardening-sicurezza-pilot.sql
+```
+
+Questo script:
+
+1. rimuove l'esecuzione anonima dalle funzioni critiche;
+2. lascia il caricamento scontrini solo a utenti autenticati;
+3. consente conferma scontrini e utilizzo credito solo a Salute Quotidiana o admin;
+4. forza gli scontrini nuovi in stato `in_verifica`;
+5. calcola il credito nel database, senza fidarsi del browser.
+
+Per bloccare reinvii dello stesso scontrino, eseguire anche:
+
+```text
+docs/supabase-blocco-duplicati-scontrini.sql
+```
+
+Per abilitare le richieste manuali di utilizzo credito dal saldo cliente, eseguire:
+
+```text
+docs/supabase-richieste-utilizzo-credito.sql
+```
+
+Per testare rapidamente la card richiesta credito senza caricare molti scontrini reali, eseguire solo in ambiente test:
+
+```text
+docs/supabase-test-simula-credito-sq.sql
+```
+
+Guida operativa:
+
+```text
+docs/test-card-richiesta-credito.md
+```
+
+## 12. Prossima correzione consigliata
 
 Priorita' tecnica:
 

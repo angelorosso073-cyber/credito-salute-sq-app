@@ -1,21 +1,21 @@
 # Credito Salute SQ - Validazione automatica scontrini
 
-Obiettivo: evitare che il titolare del bar debba verificare manualmente ogni scontrino.
+Obiettivo: aiutare Salute Quotidiana a capire quali scontrini sono piu' puliti e quali richiedono attenzione.
 
-La V2 usa una validazione automatica a regole.
+La V2 usa una validazione automatica a regole, ma dopo l'hardening di sicurezza non conferma piu' credito in automatico.
 
 ## 1. Esiti
 
-Uno scontrino puo' finire in due esiti principali:
+Uno scontrino puo' finire in due esiti operativi:
 
-1. `confermato`: supera i controlli automatici e genera credito utilizzabile.
-2. `in_verifica`: presenta anomalie e resta da controllare da Salute Quotidiana.
+1. `in_verifica`: stato iniziale obbligatorio per ogni nuovo scontrino.
+2. `confermato`: stato assegnato solo dopo controllo Salute Quotidiana o admin.
 
 Il titolare del bar non deve fare controllo quotidiano.
 
 ## 2. Controlli automatici attuali
 
-Lo scontrino viene confermato automaticamente solo se:
+Lo scontrino viene marcato come "controlli automatici superati" solo se:
 
 1. data presente;
 2. ora presente;
@@ -55,19 +55,19 @@ Se non riconosce il bar, lo considera un avviso, non un blocco automatico.
 
 ## 5. Limite della soluzione
 
-Questa validazione riduce il lavoro manuale, ma non certifica al 100% che lo scontrino sia reale.
+Questa validazione riduce il lavoro manuale, ma non certifica al 100% che lo scontrino sia reale e non rende il credito subito disponibile.
 
 La versione piu' robusta e' la riconciliazione con export vendite del bar:
 
 1. il bar esporta le vendite dal registratore/POS;
 2. il sistema confronta automaticamente data, ora, documento e importo;
-3. solo le mancate corrispondenze finiscono in controllo SQ.
+3. solo le mancate corrispondenze vengono evidenziate come casi sospetti.
 
 ## 6. Regola operativa consigliata
 
 Nel pilot:
 
-1. credito subito disponibile solo per scontrini confermati automaticamente;
+1. credito disponibile solo dopo conferma Salute Quotidiana o admin;
 2. anomalie visibili solo a Salute Quotidiana;
 3. nessuna verifica ordinaria richiesta al titolare del bar;
-4. controllo manuale SQ solo sui casi sospetti.
+4. controllo manuale SQ prima che il credito diventi utilizzabile.

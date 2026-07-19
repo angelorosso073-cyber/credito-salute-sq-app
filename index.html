@@ -157,6 +157,55 @@
                   <strong>0,00 euro SQ</strong>
                 </article>
               </div>
+              <div id="creditRequestArea" class="credit-request-area"></div>
+              <form id="creditRequestForm" class="form credit-request-form" hidden>
+                <label>
+                  Prestazione
+                  <select required name="service" id="creditRequestService"></select>
+                </label>
+                <label>
+                  Uso per
+                  <select name="beneficiaryType" id="creditRequestBeneficiaryType">
+                    <option value="se">Me stesso</option>
+                    <option value="altra_persona">Familiare / altra persona</option>
+                  </select>
+                </label>
+                <label>
+                  Nome beneficiario
+                  <input name="beneficiaryName" placeholder="Solo se diverso da te">
+                </label>
+                <label>
+                  Telefono beneficiario
+                  <input name="beneficiaryPhone" inputmode="tel" placeholder="Solo se diverso da te">
+                </label>
+                <label>
+                  Giorno preferito
+                  <input type="date" name="preferredDate">
+                </label>
+                <label>
+                  Fascia oraria preferita
+                  <select name="preferredTime">
+                    <option value="">Da concordare</option>
+                    <option value="Mattina">Mattina</option>
+                    <option value="Pomeriggio">Pomeriggio</option>
+                    <option value="Sera">Sera</option>
+                  </select>
+                </label>
+                <label class="checkbox full">
+                  <input required type="checkbox" name="contactConsent">
+                  <span>Autorizzo Salute Quotidiana a ricontattarmi per gestire questa richiesta.</span>
+                </label>
+                <label class="full">
+                  Nota operativa
+                  <textarea name="note" maxlength="500" placeholder="Informazioni pratiche, senza dati clinici o referti."></textarea>
+                </label>
+                <div class="notice full">
+                  Questa richiesta non e' per urgenze o sintomi importanti. In caso di urgenza, contatta medico, guardia medica, 112/118 o Pronto Soccorso.
+                </div>
+                <p class="form-status full" id="creditRequestStatus">La richiesta sara' controllata e confermata da Salute Quotidiana.</p>
+                <button class="primary full" type="submit">Invia richiesta</button>
+              </form>
+              <div class="mini-list" id="customerCreditRequests"></div>
               <div class="mini-list" id="customerHistory"></div>
               <div class="mini-list" id="customerRedemptionHistory"></div>
             </section>
@@ -267,6 +316,17 @@
         </section>
 
         <section class="tab-panel" id="salute" aria-labelledby="tab-salute">
+          <div class="request-alert" id="creditRequestAlert"></div>
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Richieste clienti</p>
+              <h2>Richieste utilizzo credito</h2>
+            </div>
+            <div class="notice">
+              Le richieste non sono appuntamenti confermati. Salute Quotidiana ricontatta il cliente, verifica disponibilita' e decide come procedere.
+            </div>
+            <div class="mini-list" id="creditRequestQueue"></div>
+          </section>
           <section class="panel">
             <div class="section-heading">
               <p class="eyebrow">Salute Quotidiana</p>
@@ -286,8 +346,8 @@
                 </select>
               </label>
               <label>
-                Credito SQ da usare
-                <input required name="creditUsed" type="number" min="0.01" step="0.01" placeholder="10,00">
+                Credito SQ applicato automaticamente
+                <input required readonly name="creditUsed" type="number" min="0.01" step="0.01" placeholder="0,00">
               </label>
               <label>
                 Beneficiario
@@ -301,6 +361,7 @@
                 Nota beneficiario
                 <input name="beneficiaryNote" placeholder="Es. madre, padre, persona indicata">
               </label>
+              <p class="form-status full" id="redemptionStatus">Seleziona cliente e prestazione: qui vedrai credito massimo utilizzabile e differenza stimata.</p>
               <button class="primary" type="submit">Registra utilizzo</button>
             </form>
             <div class="mini-list" id="redemptionHistory"></div>
@@ -336,7 +397,7 @@
               <li>Non valgono scommesse, giocate, vincite, ricariche o servizi esterni.</li>
               <li>Il credito SQ puo' essere usato per se', per un familiare o come donazione registrata.</li>
               <li>1 euro SQ vale 1 euro di sconto su prestazioni Salute Quotidiana.</li>
-              <li>Se il cliente ha credito sufficiente, la prestazione puo' essere interamente coperta dagli SQ.</li>
+              <li>Il credito SQ puo' essere usato come sconto; se non copre tutto il costo, il cliente puo' pagare la differenza dopo conferma.</li>
               <li>Se il credito non basta, il cliente usa gli SQ disponibili e paga solo la differenza.</li>
               <li>Le prestazioni sono su appuntamento e non sostituiscono medico, guardia medica, 112 o Pronto Soccorso.</li>
             </ol>
@@ -349,6 +410,6 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=33"></script>
+    <script src="app.js?v=44"></script>
   </body>
 </html>
