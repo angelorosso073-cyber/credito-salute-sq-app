@@ -58,9 +58,13 @@ Il fondo è definito e fisso: l'esercizio non ha esposizione variabile. Il credi
 | Medicazione semplice | 13 euro |
 | Controllo parametri di base + educazione sanitaria | 16 euro |
 | Prelievo arterioso | 20 euro |
+| Medicazioni complesse | 20 euro |
+| Ulcere ipertrofiche e piede diabetico | 20 euro |
 | Gestione medicazione tracheostomia | 30 euro |
 | Catetere vescicale a permanenza / cateterismo estemporaneo | 35 euro |
+| Gestione PICC (cateteri venosi centrali) | 35 euro |
 | Posizionamento e gestione sondino naso gastrico | 40 euro |
+| Posizionamento ago di Huber | 45 euro |
 
 Tutte le prestazioni sono programmate, non urgenti, erogate a domicilio da infermiere abilitato.
 

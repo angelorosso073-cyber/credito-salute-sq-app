@@ -99,6 +99,8 @@ Le seguenti prestazioni richiedono prescrizione medica valida prima della confer
 - Iniezione intramuscolare I.M.
 - Catetere vescicale a permanenza / cateterismo estemporaneo
 - Posizionamento e gestione sondino naso gastrico
+- Gestione PICC (cateteri venosi centrali)
+- Posizionamento ago di Huber
 
 Se la prescrizione non è disponibile al momento della richiesta, la prenotazione non viene confermata e il credito non viene scalato.
 

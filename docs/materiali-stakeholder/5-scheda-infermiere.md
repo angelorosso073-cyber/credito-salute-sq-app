@@ -19,9 +19,13 @@ L'infermiere partecipa al programma Credito Salute SQ come erogatore delle prest
 | Medicazione semplice | 13 euro | No |
 | Controllo parametri di base + educazione sanitaria | 16 euro | No |
 | Prelievo arterioso | 20 euro | No |
+| Medicazioni complesse | 20 euro | No |
+| Ulcere ipertrofiche e piede diabetico | 20 euro | No |
 | Gestione medicazione tracheostomia | 30 euro | No |
 | Catetere vescicale a permanenza / cateterismo estemporaneo | 35 euro | Sì |
+| Gestione PICC (cateteri venosi centrali) | 35 euro | Sì |
 | Posizionamento e gestione sondino naso gastrico | 40 euro | Sì |
+| Posizionamento ago di Huber | 45 euro | Sì |
 
 Quando la prescrizione è richiesta, la prenotazione non viene confermata senza di essa. Se la prescrizione non è presente al momento della prestazione, la prestazione non viene eseguita.
 

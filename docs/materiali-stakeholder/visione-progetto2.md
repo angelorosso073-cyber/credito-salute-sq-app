@@ -79,15 +79,19 @@ Ogni cliente può accumulare al massimo 50 euro di Credito SQ — abbastanza per
 | Medicazione semplice | 13€ |
 | Misurazione parametri base | 16€ |
 | Prelievo arterioso | 20€ |
+| Medicazioni complesse | 20€ |
+| Ulcere ipertrofiche e piede diabetico | 20€ |
 | Medicazione tracheostomia | 30€ |
 | Catetere vescicale | 35€ |
+| Gestione PICC (cateteri venosi centrali) | 35€ |
 | Sondino naso gastrico | 40€ |
+| Posizionamento ago di Huber | 45€ |
 
 **Servizi diagnostici** *(disponibili a breve — prezzo SQ scontato del 40% rispetto al mercato privato)*
 
 | Prestazione | Prezzo di mercato | Prezzo SQ |
 |---|---|---|
-| ECG | 26€ | 15,60€ |
+| ECG | 50€ | 30€ |
 | Holter ECG 24h | 80€ | 48€ |
 | Holter pressorio 24h | 70€ | 42€ |
 | Spirometria semplice | 50€ | 30€ |

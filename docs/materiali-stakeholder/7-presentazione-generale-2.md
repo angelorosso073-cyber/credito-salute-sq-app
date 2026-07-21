@@ -77,15 +77,19 @@ Prestazioni infermieristiche a domicilio, su appuntamento, erogate da profession
 | Medicazione semplice | 13 euro |
 | Controllo parametri di base + educazione sanitaria | 16 euro |
 | Prelievo arterioso | 20 euro |
+| Medicazioni complesse | 20 euro |
+| Ulcere ipertrofiche e piede diabetico | 20 euro |
 | Gestione medicazione tracheostomia | 30 euro |
 | Catetere vescicale / cateterismo estemporaneo | 35 euro |
+| Gestione PICC (cateteri venosi centrali) | 35 euro |
 | Posizionamento e gestione sondino naso gastrico | 40 euro |
+| Posizionamento ago di Huber | 45 euro |
 
 **Disponibili a breve — Telemedicina a domicilio:**
 
 | Prestazione | Costo |
 |---|---|
-| ECG a 12 derivazioni | 25 euro |
+| ECG a 12 derivazioni | 30 euro |
 | Holter ECG 24h | 45 euro |
 | Holter Pressorio 24h | 40 euro |
 | Spirometria semplice | 30 euro |
