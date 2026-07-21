@@ -11,7 +11,7 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable, PageBreak, Flowable
+    HRFlowable, PageBreak, Flowable, KeepTogether
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
@@ -480,6 +480,30 @@ def md_to_flowables(md_text, styles):
     return flowables
 
 
+def group_headings(flowables):
+    """Wrap each heading with the following content to prevent orphaned headings."""
+    heading_styles = {"h2", "h3", "h4"}
+    result = []
+    i = 0
+    while i < len(flowables):
+        f = flowables[i]
+        if isinstance(f, Paragraph) and f.style.name in heading_styles:
+            group = [f]
+            j = i + 1
+            while j < len(flowables) and isinstance(flowables[j], Spacer):
+                group.append(flowables[j])
+                j += 1
+            if j < len(flowables) and not isinstance(flowables[j], HRFlowable):
+                group.append(flowables[j])
+                j += 1
+            result.append(KeepTogether(group))
+            i = j
+        else:
+            result.append(f)
+            i += 1
+    return result
+
+
 def convert_file(md_path: Path, styles):
     pdf_path = md_path.with_suffix(".pdf")
     doc = SimpleDocTemplate(
@@ -494,6 +518,7 @@ def convert_file(md_path: Path, styles):
     )
     md_text = md_path.read_text(encoding="utf-8")
     flowables = md_to_flowables(md_text, styles)
+    flowables = group_headings(flowables)
     doc.build(flowables)
     print(f"  OK  {pdf_path.name}")
 
