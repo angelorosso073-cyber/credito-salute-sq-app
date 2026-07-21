@@ -7,6 +7,17 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <div id="saldoPublicPage" hidden>
+      <div class="saldo-public">
+        <div class="saldo-public__logo">
+          <p class="eyebrow">Credito Salute SQ</p>
+          <h1>Il tuo saldo SQ</h1>
+        </div>
+        <div id="saldoPublicContent" class="saldo-public__content">
+          <p>Caricamento...</p>
+        </div>
+      </div>
+    </div>
     <div class="app-shell">
       <header class="topbar">
         <div>
@@ -291,6 +302,46 @@
               <h2>Ultimi scontrini del bar</h2>
             </div>
             <div class="bar-receipt-list" id="barReportReceipts"></div>
+            <div class="section-heading section-heading--compact">
+              <h2>Carica scontrino (cassiere)</h2>
+            </div>
+            <div class="cassiere-search">
+              <input id="cassiereSearchInput" type="text" placeholder="Cerca cliente per nome o telefono...">
+              <button class="secondary" type="button" id="cassiereSearchBtn">Cerca</button>
+            </div>
+            <div id="cassiereResults"></div>
+            <div id="cassiereSelectedCustomer" hidden>
+              <div class="cassiere-customer-badge">
+                <span id="cassiereCustomerLabel">—</span>
+                <button type="button" class="secondary small" onclick="clearCassiereCustomer()">&#x2715;</button>
+              </div>
+              <form id="cassiereReceiptForm" class="form">
+                <label>Data scontrino<input required type="date" name="receiptDate"></label>
+                <label>Importo (€)<input required type="number" name="amount" min="0.01" step="0.01" placeholder="0,00"></label>
+                <label>Numero documento<input name="documentNumber" placeholder="Facoltativo"></label>
+                <label class="checkbox">
+                  <input required type="checkbox" name="validConsumption">
+                  <span>Consumazione valida (no scommesse, ricariche, tabacchi)</span>
+                </label>
+                <p class="form-status" id="cassiereReceiptStatus"></p>
+                <button class="primary" type="submit">Carica scontrino</button>
+              </form>
+              <div id="cassiereMessageArea" hidden>
+                <p class="form-label">Messaggio WhatsApp da inviare al cliente:</p>
+                <textarea id="cassiereWhatsAppText" class="whatsapp-message-box" readonly rows="8"></textarea>
+                <button class="secondary" type="button" onclick="copyCassiereWhatsApp()">Copia messaggio</button>
+              </div>
+            </div>
+            <details class="cassiere-quick-register">
+              <summary>Registra nuovo cliente</summary>
+              <form id="cassiereQuickRegisterForm" class="form">
+                <label>Nome<input required name="firstName" placeholder="Mario"></label>
+                <label>Cognome<input required name="lastName" placeholder="Rossi"></label>
+                <label>Telefono<input required name="phone" inputmode="tel" placeholder="333 0000000"></label>
+                <p class="form-status" id="cassiereRegisterStatus"></p>
+                <button class="primary" type="submit">Registra e seleziona</button>
+              </form>
+            </details>
           </section>
         </section>
 
@@ -362,8 +413,17 @@
                 <input name="beneficiaryNote" placeholder="Es. madre, padre, persona indicata">
               </label>
               <p class="form-status full" id="redemptionStatus">Seleziona cliente e prestazione: qui vedrai credito massimo utilizzabile e differenza stimata.</p>
+              <label class="checkbox full">
+                <input type="checkbox" name="confermaCliente">
+                <span>Cliente ha confermato di aver ricevuto la prestazione (spunta per anziani senza smartphone)</span>
+              </label>
               <button class="primary" type="submit">Registra utilizzo</button>
             </form>
+            <div id="redemptionMessageArea" hidden class="whatsapp-message-area">
+              <p class="form-label">Messaggio per il bar (importo da versare al fondo):</p>
+              <textarea id="redemptionBarText" class="whatsapp-message-box" readonly rows="5"></textarea>
+              <button class="secondary" type="button" id="copyBarPaymentBtn">Copia messaggio</button>
+            </div>
             <div class="mini-list" id="redemptionHistory"></div>
           </section>
         </section>
@@ -391,7 +451,7 @@
               <h2>Regole operative</h2>
             </div>
             <ol>
-              <li>Il 3% delle consumazioni valide diventa Credito Salute SQ personale.</li>
+              <li>Il 15% delle consumazioni valide diventa Credito Salute SQ personale.</li>
               <li>Il credito diventa utilizzabile quando i controlli SQ automatici lo confermano; le anomalie restano in Verifica SQ.</li>
               <li>Valgono solo consumazioni del bar: caffe', colazioni, bibite, snack, aperitivi e prodotti del bar.</li>
               <li>Non valgono scommesse, giocate, vincite, ricariche o servizi esterni.</li>
@@ -410,6 +470,6 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=44"></script>
+    <script src="app.js?v=45"></script>
   </body>
 </html>

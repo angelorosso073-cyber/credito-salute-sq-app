@@ -870,3 +870,207 @@ textarea {
     flex-direction: column;
   }
 }
+
+/* v45 — cassiere-first & saldo pubblico */
+
+.saldo-public {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+  background: var(--bg);
+}
+
+.saldo-public__logo {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.saldo-public__content {
+  width: 100%;
+  max-width: 480px;
+}
+
+.saldo-public__card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.saldo-public__balances {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.saldo-public__balance-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.saldo-public__balance-item span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.saldo-public__balance-item strong {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.affordable-services {
+  margin-top: 16px;
+}
+
+.affordable-services .eyebrow {
+  margin-bottom: 8px;
+}
+
+.affordable-service {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+
+.affordable-service--full {
+  border-color: #5ca878;
+  background: #effaf3;
+}
+
+.affordable-service strong {
+  font-size: 14px;
+}
+
+.affordable-service span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.affordable-service--full span {
+  color: #24613a;
+}
+
+.affordable-services__empty {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+.cassiere-search {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.cassiere-search input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.cassiere-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.cassiere-customer-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #effaf3;
+  border: 1px solid #5ca878;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #24613a;
+}
+
+.cassiere-quick-register {
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.cassiere-quick-register summary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.cassiere-quick-register .form {
+  padding: 0 16px 16px;
+}
+
+.whatsapp-message-box {
+  width: 100%;
+  font-family: monospace;
+  font-size: 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.whatsapp-message-area {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.form-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.status-green {
+  border-color: #5ca878;
+  background: #effaf3;
+  color: #24613a;
+}
+
+.status-yellow {
+  border-color: #e0b35d;
+  background: #fff7e7;
+  color: #76510b;
+}
+
+button.small {
+  padding: 5px 10px;
+  font-size: 13px;
+}

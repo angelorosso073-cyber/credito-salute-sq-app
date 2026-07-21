@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v44-prepara-utilizzo-fix";
+const APP_VERSION = "v45-cassiere-first";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -151,10 +151,26 @@ const el = {
   exportCsv: document.querySelector("#exportCsv"),
   exportOutput: document.querySelector("#exportOutput"),
   clearDemo: document.querySelector("#clearDemo"),
-  toast: document.querySelector("#toast")
+  toast: document.querySelector("#toast"),
+  saldoPublicPage: document.querySelector("#saldoPublicPage"),
+  cassiereSearchInput: document.querySelector("#cassiereSearchInput"),
+  cassiereSearchBtn: document.querySelector("#cassiereSearchBtn"),
+  cassiereResults: document.querySelector("#cassiereResults"),
+  cassiereSelectedCustomer: document.querySelector("#cassiereSelectedCustomer"),
+  cassiereCustomerLabel: document.querySelector("#cassiereCustomerLabel"),
+  cassiereReceiptForm: document.querySelector("#cassiereReceiptForm"),
+  cassiereReceiptStatus: document.querySelector("#cassiereReceiptStatus"),
+  cassiereMessageArea: document.querySelector("#cassiereMessageArea"),
+  cassiereWhatsAppText: document.querySelector("#cassiereWhatsAppText"),
+  cassiereRegisterStatus: document.querySelector("#cassiereRegisterStatus"),
+  cassiereQuickRegisterForm: document.querySelector("#cassiereQuickRegisterForm"),
+  redemptionMessageArea: document.querySelector("#redemptionMessageArea"),
+  redemptionBarText: document.querySelector("#redemptionBarText"),
+  copyBarPaymentBtn: document.querySelector("#copyBarPaymentBtn")
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (initPublicSaldo()) return;
   initSupabase();
   wireEvents();
   setTodayDefaults();
@@ -364,14 +380,14 @@ async function loadPilotCustomersFromSupabase() {
 
   let { data, error } = await supabaseClient
     .from("clienti_app_pilot")
-    .select("id,codice_cliente,nome,cognome,telefono,email,profilo_id,citta,created_at")
+    .select("id,codice_cliente,nome,cognome,telefono,email,profilo_id,citta,saldo_token,created_at")
     .order("created_at", { ascending: false })
     .limit(MAX_PILOT_CUSTOMERS);
 
   if (error && looksLikeMissingColumnError(error)) {
     const fallback = await supabaseClient
       .from("clienti_app_pilot")
-      .select("id,codice_cliente,nome,cognome,telefono,citta,created_at")
+      .select("id,codice_cliente,nome,cognome,telefono,citta,saldo_token,created_at")
       .order("created_at", { ascending: false })
       .limit(MAX_PILOT_CUSTOMERS);
     data = fallback.data;
@@ -533,6 +549,7 @@ function mapSupabaseCustomer(customer) {
     profileId: customer.profilo_id || "",
     phone: cleanText(customer.telefono),
     city: customer.citta || "",
+    saldoToken: customer.saldo_token || "",
     barName: BAR_NAME,
     createdAt: customer.created_at
   };
@@ -672,7 +689,7 @@ async function loadPilotRedemptionsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("utilizzi_credito_app_pilot")
-    .select("id,cliente_id,tipo_prestazione,prezzo_prestazione,credito_usato,importo_pagato,beneficiario,note,created_at")
+    .select("id,cliente_id,tipo_prestazione,prezzo_prestazione,credito_usato,importo_pagato,beneficiario,note,conferma_sq,conferma_cliente,stato_pagamento,incassato_at,created_at")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -701,6 +718,10 @@ function mapSupabaseRedemption(redemption) {
     differenceDue: Number(redemption.importo_pagato || 0),
     beneficiary: redemption.beneficiario || "se",
     beneficiaryNote: redemption.note || "",
+    confirmSq: !!redemption.conferma_sq,
+    confirmCliente: !!redemption.conferma_cliente,
+    paymentStatus: redemption.stato_pagamento || "da_incassare",
+    incassatoAt: redemption.incassato_at || null,
     createdAt: redemption.created_at
   };
 }
@@ -830,6 +851,12 @@ function wireEvents() {
   el.exportJson.addEventListener("click", exportJson);
   el.exportCsv.addEventListener("click", exportCsv);
   el.clearDemo.addEventListener("click", clearAllData);
+
+  if (el.cassiereSearchBtn) el.cassiereSearchBtn.addEventListener("click", handleCassiereSearch);
+  if (el.cassiereSearchInput) el.cassiereSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); handleCassiereSearch(e); } });
+  if (el.cassiereReceiptForm) el.cassiereReceiptForm.addEventListener("submit", handleCassiereReceiptSubmit);
+  if (el.cassiereQuickRegisterForm) el.cassiereQuickRegisterForm.addEventListener("submit", handleCassiereQuickRegister);
+  if (el.copyBarPaymentBtn) el.copyBarPaymentBtn.addEventListener("click", () => { if (lastRedemptionId) copyBarPaymentMessage(lastRedemptionId); });
 }
 
 function setTodayDefaults() {
@@ -1805,12 +1832,27 @@ async function handleRedemptionSubmit(event) {
     return;
   }
 
-  upsertRedemption(redemption);
+  const confermaCliente = !!form.get("confermaCliente");
+  if (supabaseClient && supabaseResult.id) {
+    await supabaseClient.rpc("conferma_prestazione_pilot", {
+      p_id: supabaseResult.id,
+      p_conferma_sq: true,
+      p_conferma_cliente: confermaCliente
+    });
+  }
+
+  upsertRedemption({ ...redemption, confirmSq: true, confirmCliente: confermaCliente, paymentStatus: "da_incassare" });
   saveState();
   event.currentTarget.reset();
   render();
   setRedemptionMessage("Utilizzo credito registrato. Il saldo cliente e' stato aggiornato.", "success");
   showToast("Utilizzo credito registrato.");
+
+  lastRedemptionId = supabaseResult.id || redemption.id;
+  const barMsg = buildWhatsAppMessageBar(customer, { ...redemption, id: lastRedemptionId });
+  if (el.redemptionBarText) el.redemptionBarText.value = barMsg;
+  if (el.redemptionMessageArea) el.redemptionMessageArea.hidden = false;
+
   loadPilotRedemptionsFromSupabase();
   loadPilotBalancesFromSupabase();
 }
@@ -2718,11 +2760,23 @@ function renderRedemptionHistory() {
 
   el.redemptionHistory.innerHTML = state.redemptions.slice(0, 10).map((item) => {
     const customer = getCustomer(item.customerId);
+    const isPaid = item.paymentStatus === "incassato";
+    const paymentBadge = isPaid
+      ? `<span class="status-pill status-green">Incassato</span>`
+      : `<span class="status-pill status-yellow">Da incassare</span>`;
+    const actionsBtns = !isPaid ? `
+      <button type="button" class="secondary small" onclick="copyBarPaymentMessage('${item.id}')">Copia msg bar</button>
+      <button type="button" class="secondary small" onclick="markPaymentReceived('${item.id}')">Segna incassato</button>
+    ` : "";
     return `
       <article class="history-card">
-        <strong>${customer ? `${escapeHtml(customer.code)} - ${escapeHtml(customer.firstName)} ${escapeHtml(customer.lastName)}` : "Cliente"}</strong>
+        <div class="receipt-card__head">
+          <strong>${customer ? `${escapeHtml(customer.code)} - ${escapeHtml(customer.firstName)} ${escapeHtml(customer.lastName)}` : "Cliente"}</strong>
+          ${paymentBadge}
+        </div>
         <p>${escapeHtml(item.service)}: usati ${formatMoney(item.creditUsed)} euro SQ, differenza ${formatMoney(item.differenceDue)} euro.</p>
         <p>Beneficiario: ${escapeHtml(item.beneficiary)} ${item.beneficiaryNote ? `- ${escapeHtml(item.beneficiaryNote)}` : ""}</p>
+        ${actionsBtns ? `<div class="receipt-card__actions">${actionsBtns}</div>` : ""}
       </article>
     `;
   }).join("");
@@ -3225,6 +3279,300 @@ function escapeHtml(value) {
 function csvCell(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
+
+// --- v45 cassiere-first ---
+
+let cassiereSelectedCustomerId = null;
+let cassiereCopiedMessageText = null;
+let lastRedemptionId = null;
+
+function initPublicSaldo() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("saldo");
+  if (!token) return false;
+
+  const publicPage = document.getElementById("saldoPublicPage");
+  const appShell = document.querySelector(".app-shell");
+  if (!publicPage || !appShell) return false;
+
+  publicPage.hidden = false;
+  appShell.hidden = true;
+  document.title = "Saldo SQ — Credito Salute";
+  initSupabase();
+  loadPublicSaldo(token);
+  return true;
+}
+
+async function loadPublicSaldo(token) {
+  const content = document.getElementById("saldoPublicContent");
+  if (!content) return;
+  if (!supabaseClient) {
+    content.innerHTML = `<p class="form-status" data-status="error">Servizio non disponibile. Riprova tra qualche istante.</p>`;
+    return;
+  }
+  const { data, error } = await supabaseClient.rpc("saldo_pubblico_per_token", { p_token: token });
+  if (error || !data) {
+    renderPublicSaldoError(content, "Saldo non trovato. Verifica il link ricevuto dal bar.");
+    return;
+  }
+  renderPublicSaldo(content, data);
+}
+
+function renderPublicSaldo(container, data) {
+  container.innerHTML = `
+    <div class="saldo-public__card">
+      <p class="eyebrow">${escapeHtml(data.codice)}</p>
+      <h2>${escapeHtml(data.nome)} ${escapeHtml(data.cognome)}</h2>
+      <div class="saldo-public__balances">
+        <div class="saldo-public__balance-item">
+          <span>Saldo disponibile</span>
+          <strong>${formatMoney(data.confermato)} euro SQ</strong>
+        </div>
+        ${data.in_verifica > 0 ? `
+        <div class="saldo-public__balance-item">
+          <span>In verifica SQ</span>
+          <strong>${formatMoney(data.in_verifica)} euro SQ</strong>
+        </div>` : ""}
+      </div>
+      ${renderAffordableServicesMarkup(Number(data.confermato))}
+    </div>
+  `;
+}
+
+function renderPublicSaldoError(container, msg) {
+  container.innerHTML = `<p class="form-status" data-status="error">${escapeHtml(msg)}</p>`;
+}
+
+function getAffordableServices(balance) {
+  return Object.entries(services)
+    .map(([name, cfg]) => {
+      const creditApplied = Math.min(balance, cfg.price);
+      const difference = Math.max(cfg.price - creditApplied, 0);
+      return { name, price: cfg.price, creditApplied, difference, fullyCovers: difference === 0 };
+    })
+    .filter((s) => s.creditApplied > 0);
+}
+
+function renderAffordableServicesMarkup(balance) {
+  const affordable = getAffordableServices(balance);
+  if (!affordable.length) return `<p class="affordable-services__empty">Continua ad accumulare per raggiungere una prestazione.</p>`;
+  return `
+    <div class="affordable-services">
+      <p class="eyebrow">Con il tuo saldo puoi prenotare</p>
+      ${affordable.map((s) => `
+        <div class="affordable-service${s.fullyCovers ? " affordable-service--full" : ""}">
+          <strong>${escapeHtml(s.name)}</strong>
+          <span>${formatMoney(s.creditApplied)} euro SQ${s.difference > 0 ? ` + ${formatMoney(s.difference)} euro da pagare` : " — interamente coperta"}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function buildSaldoUrl(token) {
+  return `${window.location.origin}${window.location.pathname}?saldo=${token}`;
+}
+
+function buildWhatsAppMessageCustomer(customer, addedCredit, balance) {
+  const affordable = getAffordableServices(balance);
+  const serviceLines = affordable.length
+    ? affordable.map((s) => `• ${s.name}: ${formatMoney(s.creditApplied)} SQ${s.difference > 0 ? ` + ${formatMoney(s.difference)}€ di differenza` : " (coperta)"}`).join("\n")
+    : "Continua ad accumulare per raggiungere la prima prestazione.";
+  const saldoUrl = customer.saldoToken ? buildSaldoUrl(customer.saldoToken) : "";
+  return [
+    `Ciao ${customer.firstName}!`,
+    `Hai guadagnato ${formatMoney(addedCredit)} euro SQ oggi al ${BAR_NAME}.`,
+    `Il tuo saldo e' ora ${formatMoney(balance)} euro SQ.`,
+    "",
+    "Con il tuo saldo puoi prenotare:",
+    serviceLines,
+    "",
+    saldoUrl ? `Il tuo saldo aggiornato: ${saldoUrl}` : "",
+    "— Salute Quotidiana"
+  ].filter((l) => l !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function buildWhatsAppMessageBar(customer, redemption) {
+  return [
+    `Prestazione Credito SQ — ${formatDate(redemption.createdAt)}`,
+    `Cliente: ${customer.firstName} ${customer.lastName} (${customer.code})`,
+    `Prestazione: ${redemption.service} — ${formatMoney(redemption.servicePrice)} euro`,
+    `Credito SQ applicato: ${formatMoney(redemption.creditUsed)} euro`,
+    `Da versare al fondo SQ: ${formatMoney(redemption.creditUsed)} euro`,
+    "",
+    "Grazie — Salute Quotidiana"
+  ].join("\n");
+}
+
+function copyToClipboard(text, successMsg) {
+  navigator.clipboard.writeText(text).then(
+    () => showToast(successMsg || "Copiato!"),
+    () => showToast("Copia manuale: seleziona il testo e copia.")
+  );
+}
+
+function handleCassiereSearch(event) {
+  if (event && event.type !== "keydown") event.preventDefault?.();
+  const query = (el.cassiereSearchInput?.value || "").trim().toLowerCase();
+  if (!query) return;
+  const matches = state.customers.filter((c) =>
+    `${c.firstName} ${c.lastName}`.toLowerCase().includes(query) ||
+    normalizePhone(c.phone).includes(normalizePhone(query))
+  );
+  renderCassiereResults(matches, query);
+}
+
+function renderCassiereResults(matches, query) {
+  if (!el.cassiereResults) return;
+  if (!matches.length) {
+    el.cassiereResults.innerHTML = `<p class="form-status" data-status="error">Nessun cliente trovato per "${escapeHtml(query)}". Registralo qui sotto.</p>`;
+    return;
+  }
+  el.cassiereResults.innerHTML = matches.map((c) => `
+    <div class="cassiere-result-row">
+      <span>${escapeHtml(c.code)} — ${escapeHtml(c.firstName)} ${escapeHtml(c.lastName)}${c.phone ? ` — ${escapeHtml(c.phone)}` : ""}</span>
+      <button type="button" class="secondary small" onclick="selectCassiereCustomer('${c.id}')">Seleziona</button>
+    </div>
+  `).join("");
+}
+
+function selectCassiereCustomer(customerId) {
+  const customer = getCustomer(customerId);
+  if (!customer) return;
+  cassiereSelectedCustomerId = customerId;
+  if (el.cassiereResults) el.cassiereResults.innerHTML = "";
+  if (el.cassiereCustomerLabel) el.cassiereCustomerLabel.textContent = `${customer.code} — ${customer.firstName} ${customer.lastName}`;
+  if (el.cassiereSelectedCustomer) el.cassiereSelectedCustomer.hidden = false;
+  if (el.cassiereMessageArea) el.cassiereMessageArea.hidden = true;
+  if (el.cassiereReceiptStatus) el.cassiereReceiptStatus.textContent = "";
+  if (el.cassiereReceiptForm) {
+    el.cassiereReceiptForm.reset();
+    el.cassiereReceiptForm.receiptDate.value = new Date().toISOString().slice(0, 10);
+  }
+}
+
+function clearCassiereCustomer() {
+  cassiereSelectedCustomerId = null;
+  if (el.cassiereSelectedCustomer) el.cassiereSelectedCustomer.hidden = true;
+  if (el.cassiereMessageArea) el.cassiereMessageArea.hidden = true;
+  if (el.cassiereResults) el.cassiereResults.innerHTML = "";
+  if (el.cassiereSearchInput) el.cassiereSearchInput.value = "";
+}
+
+async function handleCassiereQuickRegister(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const nome = cleanText(form.get("firstName"));
+  const cognome = cleanText(form.get("lastName"));
+  const telefono = cleanText(form.get("phone"));
+  if (el.cassiereRegisterStatus) el.cassiereRegisterStatus.textContent = "Registrazione in corso...";
+  if (!supabaseClient) {
+    if (el.cassiereRegisterStatus) el.cassiereRegisterStatus.textContent = "Errore: Supabase non disponibile.";
+    return;
+  }
+  const { data, error } = await supabaseClient.rpc("registra_cliente_rapido_pilot", {
+    p_nome: nome, p_cognome: cognome, p_telefono: telefono
+  });
+  if (error) {
+    if (el.cassiereRegisterStatus) el.cassiereRegisterStatus.textContent = `Errore: ${error.message}`;
+    return;
+  }
+  const msg = data.exists ? "Cliente gia' presente — selezionato." : "Cliente registrato.";
+  if (el.cassiereRegisterStatus) el.cassiereRegisterStatus.textContent = msg;
+  showToast(msg);
+  event.currentTarget.reset();
+  await loadPilotCustomersFromSupabase();
+  selectCassiereCustomer(data.id);
+}
+
+async function handleCassiereReceiptSubmit(event) {
+  event.preventDefault();
+  const customer = getCustomer(cassiereSelectedCustomerId);
+  if (!customer) { showToast("Seleziona un cliente prima."); return; }
+  const form = new FormData(event.currentTarget);
+  const amount = parseMoney(form.get("amount"));
+  const validConsumption = !!form.get("validConsumption");
+  if (!amount || amount <= 0) {
+    if (el.cassiereReceiptStatus) el.cassiereReceiptStatus.textContent = "Importo non valido.";
+    return;
+  }
+  if (!validConsumption) {
+    if (el.cassiereReceiptStatus) el.cassiereReceiptStatus.textContent = "Conferma che sia una consumazione valida.";
+    return;
+  }
+  const receiptDate = cleanText(form.get("receiptDate")) || new Date().toISOString().slice(0, 10);
+  const documentNumber = cleanText(form.get("documentNumber"));
+  const credit = roundMoney(amount * CREDIT_RATE);
+  const receipt = {
+    id: crypto.randomUUID(),
+    customerId: customer.id,
+    customerCode: customer.code,
+    receiptDate,
+    receiptTime: new Date().toTimeString().slice(0, 5),
+    amount,
+    credit,
+    documentNumber,
+    status: "pending",
+    note: "Caricato da cassiere bar",
+    createdAt: new Date().toISOString()
+  };
+  if (el.cassiereReceiptStatus) el.cassiereReceiptStatus.textContent = "Salvataggio...";
+  const result = await saveReceiptToSupabase(receipt, false, { autoApprove: amount <= AUTO_APPROVE_MAX_AMOUNT, message: "" });
+  if (!result.ok) {
+    if (el.cassiereReceiptStatus) el.cassiereReceiptStatus.textContent = `Errore: ${result.message}`;
+    return;
+  }
+  upsertReceipt(receipt);
+  saveState();
+  const balances = getBalances(customer.id);
+  const newBalance = balances.confirmed + credit;
+  const msg = buildWhatsAppMessageCustomer(customer, credit, newBalance);
+  cassiereCopiedMessageText = msg;
+  if (el.cassiereWhatsAppText) el.cassiereWhatsAppText.value = msg;
+  if (el.cassiereMessageArea) el.cassiereMessageArea.hidden = false;
+  if (el.cassiereReceiptStatus) el.cassiereReceiptStatus.textContent = `Scontrino registrato. Credito: +${formatMoney(credit)} euro SQ.`;
+  event.currentTarget.reset();
+  event.currentTarget.receiptDate.value = new Date().toISOString().slice(0, 10);
+  showToast(`Scontrino caricato per ${customer.firstName}.`);
+  loadPilotReceiptsFromSupabase();
+  loadPilotBalancesFromSupabase();
+}
+
+function copyCassiereWhatsApp() {
+  if (!cassiereCopiedMessageText) return;
+  copyToClipboard(cassiereCopiedMessageText, "Messaggio WhatsApp copiato!");
+}
+
+async function markPaymentReceived(redemptionId) {
+  const ok = await markPaymentReceivedOnSupabase(redemptionId);
+  if (!ok) return;
+  const redemption = state.redemptions.find((r) => r.id === redemptionId);
+  if (redemption) {
+    redemption.paymentStatus = "incassato";
+    redemption.incassatoAt = new Date().toISOString();
+    saveState();
+    renderRedemptionHistory();
+  }
+  showToast("Pagamento segnato come incassato.");
+}
+
+async function markPaymentReceivedOnSupabase(id) {
+  if (!supabaseClient) return false;
+  const { error } = await supabaseClient.rpc("segna_pagamento_incassato_pilot", { p_id: id });
+  if (error) { showToast(`Errore: ${error.message}`); return false; }
+  return true;
+}
+
+function copyBarPaymentMessage(redemptionId) {
+  const redemption = state.redemptions.find((r) => r.id === redemptionId);
+  if (!redemption) return;
+  const customer = getCustomer(redemption.customerId);
+  if (!customer) return;
+  const msg = buildWhatsAppMessageBar(customer, redemption);
+  copyToClipboard(msg, "Messaggio bar copiato!");
+}
+
+// --- end v45 ---
 
 function showToast(message) {
   el.toast.textContent = message;
