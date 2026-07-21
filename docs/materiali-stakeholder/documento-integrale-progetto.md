@@ -97,9 +97,13 @@ Tutte le prestazioni sono erogate a domicilio, su appuntamento programmato, da i
 | Medicazione semplice | 13 € |
 | Controllo parametri di base | 16 € |
 | Prelievo arterioso | 20 € |
+| Medicazioni complesse | 20 € |
+| Ulcere ipertrofiche e piede diabetico | 20 € |
 | Gestione medicazione tracheostomia | 30 € |
 | Catetere vescicale / cateterismo estemporaneo | 35 € |
+| Gestione PICC (cateteri venosi centrali) | 35 € |
 | Posizionamento e gestione sondino naso gastrico | 40 € |
+| Posizionamento ago di Huber | 45 € |
 
 ### Diagnostica strumentale a domicilio *(disponibile a breve)*
 
@@ -107,7 +111,7 @@ Prezzi SQ scontati del 40% rispetto al mercato privato.
 
 | Prestazione | Prezzo di mercato | Prezzo SQ |
 |---|---|---|
-| ECG a 12 derivazioni | 26 € | 15,60 € |
+| ECG a 12 derivazioni | 50 € | 30 € |
 | Holter ECG 24h | 80 € | 48 € |
 | Holter pressorio 24h | 70 € | 42 € |
 | Spirometria semplice | 50 € | 30 € |
