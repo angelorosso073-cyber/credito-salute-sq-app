@@ -58,7 +58,7 @@ select
   u.prezzo_prestazione,
   u.credito_usato,
   greatest(u.prezzo_prestazione - u.credito_usato, 0)::numeric(10, 2) as importo_pagato,
-  coalesce(u.beneficiario, 'se') as beneficiario,
+  'se'::text as beneficiario,
   coalesce(u.nota_interna, '') as note,
   u.conferma_sq,
   u.conferma_sq_at,

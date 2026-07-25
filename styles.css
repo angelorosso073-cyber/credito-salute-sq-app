@@ -1010,6 +1010,60 @@ textarea {
   color: #24613a;
 }
 
+.cassiere-operatore-panel {
+  background: #f0f4ff;
+  border: 1px solid #b8c8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.cassiere-operatore-panel .form-label {
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: #2d3a6b;
+  font-size: 14px;
+}
+
+.cassiere-operatore-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cassiere-operatore-btn {
+  flex: 1;
+  min-width: 90px;
+  padding: 10px 12px;
+  border: 2px solid #b8c8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #2d3a6b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cassiere-operatore-btn:hover {
+  background: #2d3a6b;
+  color: #fff;
+  border-color: #2d3a6b;
+}
+
+.cassiere-operatore-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e8f0fe;
+  border: 1px solid #7b9ef0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #1a2e6b;
+}
+
 .cassiere-quick-register {
   margin-top: 20px;
   border: 1px solid var(--line);

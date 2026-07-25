@@ -305,6 +305,18 @@
             <div class="section-heading section-heading--compact">
               <h2>Carica scontrino (cassiere)</h2>
             </div>
+            <div id="cassiereOperatorePanel" class="cassiere-operatore-panel">
+              <p class="form-label">Chi stai operando?</p>
+              <div class="cassiere-operatore-options">
+                <button type="button" class="cassiere-operatore-btn" data-operatore="Dipendente 1">Dipendente 1</button>
+                <button type="button" class="cassiere-operatore-btn" data-operatore="Dipendente 2">Dipendente 2</button>
+                <button type="button" class="cassiere-operatore-btn" data-operatore="Titolare">Titolare</button>
+              </div>
+            </div>
+            <div id="cassiereOperatoreActive" class="cassiere-operatore-active" hidden>
+              <span>Operatore: <strong id="cassiereOperatoreLabel">—</strong></span>
+              <button type="button" class="secondary small" id="cassiereOperatoreCambia">Cambia</button>
+            </div>
             <div class="cassiere-search">
               <input id="cassiereSearchInput" type="text" placeholder="Cerca cliente per nome o telefono...">
               <button class="secondary" type="button" id="cassiereSearchBtn">Cerca</button>
@@ -470,6 +482,6 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=45"></script>
+    <script src="app.js?v=47"></script>
   </body>
 </html>

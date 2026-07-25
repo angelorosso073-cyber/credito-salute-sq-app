@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v45-cassiere-first";
+const APP_VERSION = "v47-signup-fix";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -164,6 +164,9 @@ const el = {
   cassiereWhatsAppText: document.querySelector("#cassiereWhatsAppText"),
   cassiereRegisterStatus: document.querySelector("#cassiereRegisterStatus"),
   cassiereQuickRegisterForm: document.querySelector("#cassiereQuickRegisterForm"),
+  cassiereOperatorePanel: document.querySelector("#cassiereOperatorePanel"),
+  cassiereOperatoreActive: document.querySelector("#cassiereOperatoreActive"),
+  cassiereOperatoreLabel: document.querySelector("#cassiereOperatoreLabel"),
   redemptionMessageArea: document.querySelector("#redemptionMessageArea"),
   redemptionBarText: document.querySelector("#redemptionBarText"),
   copyBarPaymentBtn: document.querySelector("#copyBarPaymentBtn")
@@ -856,6 +859,11 @@ function wireEvents() {
   if (el.cassiereSearchInput) el.cassiereSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); handleCassiereSearch(e); } });
   if (el.cassiereReceiptForm) el.cassiereReceiptForm.addEventListener("submit", handleCassiereReceiptSubmit);
   if (el.cassiereQuickRegisterForm) el.cassiereQuickRegisterForm.addEventListener("submit", handleCassiereQuickRegister);
+  document.querySelectorAll(".cassiere-operatore-btn").forEach((btn) => {
+    btn.addEventListener("click", () => setCassiereOperatore(btn.dataset.operatore));
+  });
+  const cambiaBtnOp = document.querySelector("#cassiereOperatoreCambia");
+  if (cambiaBtnOp) cambiaBtnOp.addEventListener("click", () => { localStorage.removeItem("sq_operatore"); initCassiereOperatore(); });
   if (el.copyBarPaymentBtn) el.copyBarPaymentBtn.addEventListener("click", () => { if (lastRedemptionId) copyBarPaymentMessage(lastRedemptionId); });
 }
 
@@ -902,6 +910,7 @@ async function handleAuthSubmit(event) {
 
 async function handleSignupSubmit(event) {
   event.preventDefault();
+  const formEl = event.currentTarget;
 
   if (!supabaseClient?.auth) {
     setSignupMessage("Supabase Auth non e' disponibile.", "error");
@@ -909,7 +918,7 @@ async function handleSignupSubmit(event) {
     return;
   }
 
-  const form = new FormData(event.currentTarget);
+  const form = new FormData(formEl);
   const firstName = cleanText(form.get("firstName"));
   const lastName = cleanText(form.get("lastName"));
   const phone = cleanText(form.get("phone"));
@@ -978,8 +987,8 @@ async function handleSignupSubmit(event) {
     return;
   }
 
-  event.currentTarget.reset();
-  event.currentTarget.city.value = "Francofonte";
+  formEl.reset();
+  formEl.city.value = "Francofonte";
 
   if (data?.session) {
     await setAuthState(data.session);
@@ -1127,6 +1136,19 @@ function switchTab(tabId) {
   el.panels.forEach((panel) => {
     panel.classList.toggle("is-active", panel.id === tabId);
   });
+  if (tabId === "bar_report") initCassiereOperatore();
+}
+
+function initCassiereOperatore() {
+  const saved = localStorage.getItem("sq_operatore");
+  if (el.cassiereOperatorePanel) el.cassiereOperatorePanel.hidden = !!saved;
+  if (el.cassiereOperatoreActive) el.cassiereOperatoreActive.hidden = !saved;
+  if (el.cassiereOperatoreLabel && saved) el.cassiereOperatoreLabel.textContent = saved;
+}
+
+function setCassiereOperatore(label) {
+  localStorage.setItem("sq_operatore", label);
+  initCassiereOperatore();
 }
 
 function requireAccess(tabId) {
@@ -1469,7 +1491,8 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     p_credito_generato: receipt.credit,
     p_stato: "in_verifica",
     p_avviso_duplicato: Boolean(duplicate),
-    p_motivo_controllo: validation.message
+    p_motivo_controllo: validation.message,
+    p_operatore_label: receipt.operatorLabel || null
   });
 
   if (error) {
@@ -3512,6 +3535,7 @@ async function handleCassiereReceiptSubmit(event) {
     amount,
     credit,
     documentNumber,
+    operatorLabel: localStorage.getItem("sq_operatore") || null,
     status: "pending",
     note: "Caricato da cassiere bar",
     createdAt: new Date().toISOString()
