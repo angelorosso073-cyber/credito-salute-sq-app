@@ -73,6 +73,18 @@ h2 {
   text-transform: uppercase;
 }
 
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar__logo {
+  height: 200px;
+  width: auto;
+  flex-shrink: 0;
+}
+
 .topbar__summary {
   display: flex;
   gap: 8px;

@@ -49,15 +49,22 @@ const AUTH_ROLE_MAP = {
 };
 
 const services = {
-  "Controllo parametri base a domicilio": {
-    price: 20
-  },
-  "Controllo parametri completo a domicilio": {
-    price: 25
-  },
-  "Parametri + breve educazione sanitaria": {
-    price: 30
-  }
+  "Iniezione intramuscolare I.M. (su prescrizione)": { price: 8 },
+  "Prelievo ematico periferico": { price: 10 },
+  "Medicazione semplice": { price: 13 },
+  "Controllo parametri di base + educazione sanitaria": { price: 16 },
+  "Prelievo arterioso": { price: 20 },
+  "Medicazioni complesse": { price: 20 },
+  "Ulcere ipertrofiche e piede diabetico": { price: 20 },
+  "Gestione medicazione tracheostomia": { price: 30 },
+  "Catetere vescicale a permanenza / cateterismo estemporaneo": { price: 35 },
+  "Gestione PICC (cateteri venosi centrali)": { price: 35 },
+  "Posizionamento e gestione sondino naso gastrico": { price: 40 },
+  "Posizionamento ago di Huber": { price: 45 },
+  "ECG": { price: 30, available: false },
+  "Holter ECG 24h": { price: 48, available: false },
+  "Holter pressorio 24h": { price: 42, available: false },
+  "Spirometria semplice": { price: 30, available: false }
 };
 
 const REQUEST_STATUSES = {
@@ -176,6 +183,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (initPublicSaldo()) return;
   initSupabase();
   wireEvents();
+  renderRedemptionServiceOptions();
   setTodayDefaults();
   await bootstrapAuth();
   render();
@@ -2334,6 +2342,23 @@ function renderCreditRequestArea(customerId, balances) {
   syncCreditRequestBeneficiaryFields();
 }
 
+function renderRedemptionServiceOptions() {
+  const select = el.redemptionForm?.service;
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = Object.entries(services).map(([name, config]) => {
+    const unavailable = config.available === false;
+    const label = unavailable
+      ? `${escapeHtml(name)} — ${formatMoney(config.price)} euro (non disponibile)`
+      : `${escapeHtml(name)} — ${formatMoney(config.price)} euro`;
+    return `<option value="${escapeHtml(name)}"${unavailable ? " disabled" : ""}>${label}</option>`;
+  }).join("");
+  if (current && Array.from(select.options).some(o => o.value === current)) {
+    select.value = current;
+  }
+  updateRedemptionStatusText();
+}
+
 function renderCreditRequestServiceOptions(availableServices) {
   if (!el.creditRequestService) return;
 
@@ -2351,7 +2376,7 @@ function getRequestableServices(confirmedBalance) {
     return [];
   }
 
-  return Object.entries(services);
+  return Object.entries(services).filter(([, config]) => config.available !== false);
 }
 
 function toggleCreditRequestForm() {

@@ -20,9 +20,12 @@
     </div>
     <div class="app-shell">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">Pilot Bar Francofonte</p>
-          <h1>Credito Salute SQ</h1>
+        <div class="topbar__brand">
+          <img src="Logo.png" alt="Salute Quotidiana" class="topbar__logo">
+          <div>
+            <p class="eyebrow">Pilot Bar Francofonte</p>
+            <h1>Credito Salute SQ</h1>
+          </div>
         </div>
         <div class="topbar__summary" aria-live="polite">
           <span id="supabaseStatus">Supabase non collegato</span>
@@ -402,11 +405,7 @@
               </label>
               <label>
                 Prestazione
-                <select required name="service">
-                  <option value="Controllo parametri base a domicilio">Controllo parametri base - 20 euro</option>
-                  <option value="Controllo parametri completo a domicilio">Controllo parametri completo - 25 euro</option>
-                  <option value="Parametri + breve educazione sanitaria">Parametri + educazione - 30 euro</option>
-                </select>
+                <select required name="service"></select>
               </label>
               <label>
                 Credito SQ applicato automaticamente
