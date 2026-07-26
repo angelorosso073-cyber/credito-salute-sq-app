@@ -1,14 +1,14 @@
 :root {
-  --bg: #f4f7f5;
+  --bg: #f4f7fb;
   --surface: #ffffff;
-  --surface-soft: #eef5f0;
+  --surface-soft: #eef3fb;
   --ink: #17231d;
   --muted: #5d6a62;
   --line: #d7e2db;
   --line-strong: #b9c9c0;
   --surface-raised: #fbfcfb;
-  --green: #1f7a4d;
-  --green-dark: #155b39;
+  --green: #1d6ab5;
+  --green-dark: #1a3868;
   --blue: #245a86;
   --amber: #946000;
   --red: #a93232;
@@ -75,12 +75,22 @@ h2 {
 
 .topbar__brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 2px;
+}
+
+.topbar__brand .eyebrow {
+  margin-bottom: 0;
+}
+
+.topbar__brand a {
+  display: inline-block;
+  line-height: 0;
 }
 
 .topbar__logo {
-  height: 200px;
+  height: 320px;
   width: auto;
   flex-shrink: 0;
 }
@@ -103,9 +113,9 @@ h2 {
 }
 
 #supabaseStatus[data-status="online"] {
-  border-color: #5ca878;
-  background: #effaf3;
-  color: #24613a;
+  border-color: #5a96d4;
+  background: #eef4fb;
+  color: #1a4d8c;
 }
 
 #supabaseStatus[data-status="offline"] {
@@ -122,7 +132,7 @@ h2 {
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 8px;
-  background: #eef4f0;
+  background: #eef3fb;
 }
 
 .tab-button,
@@ -263,7 +273,7 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus {
-  outline: 3px solid rgba(31, 122, 77, 0.22);
+  outline: 3px solid rgba(29, 106, 181, 0.22);
   outline-offset: 1px;
 }
 
@@ -389,10 +399,10 @@ button:focus {
 }
 
 .calculation {
-  border: 1px solid rgba(31, 122, 77, 0.42);
+  border: 1px solid rgba(29, 106, 181, 0.42);
   border-radius: 6px;
   padding: 12px;
-  background: #f1faf4;
+  background: #f0f6fd;
   color: var(--green-dark);
   font-weight: 800;
 }
@@ -406,10 +416,10 @@ button:focus {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(31, 122, 77, 0.48);
+  border: 1px solid rgba(29, 106, 181, 0.48);
   border-radius: 8px;
   padding: 14px;
-  background: #f1faf4;
+  background: #f0f6fd;
 }
 
 .credit-request-card span {
@@ -464,8 +474,8 @@ button:focus {
 }
 
 .form-status[data-status="success"] {
-  border-color: #b9dfc5;
-  background: #effaf3;
+  border-color: #b8d0ee;
+  background: #eef4fb;
   color: var(--green-dark);
 }
 
@@ -779,8 +789,8 @@ button:focus {
 
 .status-confirmed {
   color: var(--green-dark);
-  border-color: rgba(31, 122, 77, 0.35);
-  background: #effaf3;
+  border-color: rgba(29, 106, 181, 0.35);
+  background: #eef4fb;
 }
 
 .status-rejected {
@@ -834,6 +844,10 @@ textarea {
   .topbar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .topbar__brand {
+    width: 100%;
   }
 
   .topbar__summary {
@@ -957,8 +971,8 @@ textarea {
 }
 
 .affordable-service--full {
-  border-color: #5ca878;
-  background: #effaf3;
+  border-color: #5a96d4;
+  background: #eef4fb;
 }
 
 .affordable-service strong {
@@ -971,7 +985,7 @@ textarea {
 }
 
 .affordable-service--full span {
-  color: #24613a;
+  color: #1a4d8c;
 }
 
 .affordable-services__empty {
@@ -1012,14 +1026,14 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #effaf3;
-  border: 1px solid #5ca878;
+  background: #eef4fb;
+  border: 1px solid #5a96d4;
   border-radius: 8px;
   padding: 10px 14px;
   margin: 12px 0 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #24613a;
+  color: #1a4d8c;
 }
 
 .cassiere-operatore-panel {
@@ -1125,9 +1139,9 @@ textarea {
 }
 
 .status-green {
-  border-color: #5ca878;
-  background: #effaf3;
-  color: #24613a;
+  border-color: #5a96d4;
+  background: #eef4fb;
+  color: #1a4d8c;
 }
 
 .status-yellow {
