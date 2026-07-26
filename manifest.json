@@ -1,0 +1,21 @@
+{
+  "name": "Credito Salute SQ",
+  "short_name": "Salute SQ",
+  "description": "Web app Credito Salute SQ — Pilot Bar Francofonte",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1d6ab5",
+  "icons": [
+    {
+      "src": "Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "Logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
