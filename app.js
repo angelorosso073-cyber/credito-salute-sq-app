@@ -1000,6 +1000,29 @@ async function handleSignupSubmit(event) {
 
   if (data?.session) {
     await setAuthState(data.session);
+
+    const phoneNorm = normalizePhone(phone);
+    const clienteEsiste = state.customers.some((c) => normalizePhone(c.phone) === phoneNorm);
+    if (!clienteEsiste && state.customers.length < MAX_PILOT_CUSTOMERS) {
+      const nuovoCliente = {
+        id: crypto.randomUUID(),
+        code: generateCustomerCode(),
+        firstName,
+        lastName,
+        phone,
+        city,
+        barName: BAR_NAME,
+        createdAt: new Date().toISOString()
+      };
+      const risultato = await saveCustomerToSupabase(nuovoCliente);
+      if (risultato.ok) {
+        state.nextCustomerNumber += 1;
+        upsertCustomer(nuovoCliente);
+        saveState();
+        await loadPilotCustomersFromSupabase();
+      }
+    }
+
     setSignupMessage("Account cliente creato. Accesso effettuato.", "success");
     setAuthMessage("Account cliente creato. Ora puoi usare la web app.", "success");
     showToast("Account cliente creato.");
