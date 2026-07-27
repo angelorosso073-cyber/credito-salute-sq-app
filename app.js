@@ -293,7 +293,7 @@ async function loadProfileForUser(user) {
   try {
     const query = supabaseClient
       .from("profili")
-      .select("*")
+      .select("id, auth_user_id, ruolo, email, nome_completo, telefono, created_at, updated_at")
       .eq("auth_user_id", user.id)
       .maybeSingle();
 
@@ -310,7 +310,7 @@ async function loadProfileForUser(user) {
   try {
     const { data, error } = await supabaseClient
       .from("profili")
-      .select("*");
+      .select("id, auth_user_id, ruolo, email, nome_completo, telefono, created_at, updated_at");
 
     if (error) {
       console.warn("Errore caricamento profili:", error);
