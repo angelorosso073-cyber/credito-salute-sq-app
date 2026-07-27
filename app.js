@@ -1370,6 +1370,10 @@ async function submitReceipt(event) {
     return;
   }
 
+  if (supabaseResult.autoApproved) {
+    receipt.status = "confirmed";
+    receipt.note = "Approvato automaticamente.";
+  }
   state.receipts.unshift(receipt);
   saveState();
   receiptForm.reset();
@@ -1378,8 +1382,13 @@ async function submitReceipt(event) {
   resetOcrBox();
   updateReceiptCalculation();
   render();
-  setReceiptSubmitStatus("Scontrino salvato su Supabase in controllo SQ.", "success");
-  showToast("Scontrino salvato su Supabase in controllo SQ.");
+  if (supabaseResult.autoApproved) {
+    setReceiptSubmitStatus("Credito accreditato automaticamente.", "success");
+    showToast("Credito accreditato.");
+  } else {
+    setReceiptSubmitStatus("Scontrino inviato — in attesa di verifica SQ.", "success");
+    showToast("Scontrino inviato. In attesa di verifica SQ.");
+  }
   loadPilotReceiptsFromSupabase();
   loadPilotBalancesFromSupabase();
 }
@@ -1508,7 +1517,8 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     return { ok: false, message: error.message };
   }
 
-  return { ok: true, id: data };
+  const autoApproved = validation.approved || validation.autoApprove || false;
+  return { ok: true, id: data, autoApproved };
 }
 
 async function handleReceiptImageChange() {
