@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v49";
+const APP_VERSION = "v51";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -180,16 +180,26 @@ const el = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  if (initPublicSaldo()) return;
+  const splashMin = new Promise(r => setTimeout(r, 1800));
+  if (initPublicSaldo()) { hideSplash(); return; }
   initSupabase();
   wireEvents();
   renderRedemptionServiceOptions();
   setTodayDefaults();
   await bootstrapAuth();
   render();
+  await splashMin;
+  hideSplash();
   checkSupabaseDatabase();
   await syncDataForCurrentRole();
 });
+
+function hideSplash() {
+  const splash = document.getElementById("splash");
+  if (!splash) return;
+  splash.classList.add("splash--hidden");
+  splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+}
 
 function initSupabase() {
   if (!window.supabase) {
