@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Salute SQ">
     <link rel="apple-touch-icon" href="Logo.png">
-    <link rel="stylesheet" href="styles.css?v=54">
+    <link rel="stylesheet" href="styles.css?v=55">
   </head>
   <body>
     <div id="splash" aria-hidden="true">
@@ -304,6 +304,12 @@
               <p class="form-status full" id="receiptSubmitStatus">Pronto per l'invio dopo foto, dati e conferma consumazione.</p>
               <button class="primary full" type="submit">Invia scontrino</button>
             </form>
+            <div class="qr-scontrino-area" id="qrScontrinoArea" hidden>
+              <p class="form-label">Mostra questo QR al barista entro 15 minuti per confermare il credito:</p>
+              <canvas id="qrCanvas" class="qr-canvas"></canvas>
+              <p class="qr-timer" id="qrTimer">15:00</p>
+              <p class="form-status" id="qrStatus">QR generato. In attesa di scansione da parte del bar.</p>
+            </div>
           </section>
         </section>
 
@@ -322,6 +328,20 @@
               <h2>Ultimi scontrini del bar</h2>
             </div>
             <div class="bar-receipt-list" id="barReportReceipts"></div>
+            <div class="section-heading section-heading--compact">
+              <h2>Scansiona QR cliente</h2>
+            </div>
+            <div class="qr-scan-area" id="qrScanArea">
+              <div class="camera-tool__actions">
+                <button type="button" class="secondary" id="openQrScan">Apri scanner QR</button>
+                <button type="button" class="secondary" id="closeQrScan" disabled>Chiudi scanner</button>
+              </div>
+              <div class="qr-scan-preview" id="qrScanPreview" hidden>
+                <video id="qrScanVideo" autoplay playsinline muted></video>
+              </div>
+              <canvas id="qrScanCanvas" hidden></canvas>
+              <p class="form-status" id="qrScanStatus">Apri lo scanner e inquadra il QR mostrato dal cliente.</p>
+            </div>
             <div class="section-heading section-heading--compact">
               <h2>Carica scontrino (cassiere)</h2>
             </div>
@@ -501,8 +521,10 @@
       }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=49"></script>
+    <script src="app.js?v=52"></script>
   </body>
 </html>

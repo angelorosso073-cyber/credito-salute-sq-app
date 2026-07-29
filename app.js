@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v51";
+const APP_VERSION = "v52";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -97,6 +97,9 @@ let authRole = "guest";
 let authReady = false;
 let pilotDataLoading = false;
 let suppressLocalPersistence = false;
+let qrTimerInterval = null;
+let qrScanStream = null;
+let qrScanAnimFrame = null;
 
 const el = {
   tabs: document.querySelectorAll(".tab-button"),
@@ -176,7 +179,18 @@ const el = {
   cassiereOperatoreLabel: document.querySelector("#cassiereOperatoreLabel"),
   redemptionMessageArea: document.querySelector("#redemptionMessageArea"),
   redemptionBarText: document.querySelector("#redemptionBarText"),
-  copyBarPaymentBtn: document.querySelector("#copyBarPaymentBtn")
+  copyBarPaymentBtn: document.querySelector("#copyBarPaymentBtn"),
+  qrScontrinoArea: document.querySelector("#qrScontrinoArea"),
+  qrCanvas: document.querySelector("#qrCanvas"),
+  qrTimer: document.querySelector("#qrTimer"),
+  qrStatus: document.querySelector("#qrStatus"),
+  qrScanArea: document.querySelector("#qrScanArea"),
+  openQrScan: document.querySelector("#openQrScan"),
+  closeQrScan: document.querySelector("#closeQrScan"),
+  qrScanPreview: document.querySelector("#qrScanPreview"),
+  qrScanVideo: document.querySelector("#qrScanVideo"),
+  qrScanCanvas: document.querySelector("#qrScanCanvas"),
+  qrScanStatus: document.querySelector("#qrScanStatus")
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -883,6 +897,9 @@ function wireEvents() {
   const cambiaBtnOp = document.querySelector("#cassiereOperatoreCambia");
   if (cambiaBtnOp) cambiaBtnOp.addEventListener("click", () => { localStorage.removeItem("sq_operatore"); initCassiereOperatore(); });
   if (el.copyBarPaymentBtn) el.copyBarPaymentBtn.addEventListener("click", () => { if (lastRedemptionId) copyBarPaymentMessage(lastRedemptionId); });
+
+  if (el.openQrScan) el.openQrScan.addEventListener("click", openQrScanner);
+  if (el.closeQrScan) el.closeQrScan.addEventListener("click", closeQrScanner);
 }
 
 function setTodayDefaults() {
@@ -1422,8 +1439,185 @@ async function submitReceipt(event) {
     setReceiptSubmitStatus("Scontrino inviato — in attesa di verifica SQ.", "success");
     showToast("Scontrino inviato. In attesa di verifica SQ.");
   }
+  await generateAndShowQr(receipt.id);
   loadPilotReceiptsFromSupabase();
   loadPilotBalancesFromSupabase();
+}
+
+async function generateAndShowQr(receiptId) {
+  if (!el.qrScontrinoArea || !el.qrCanvas) return;
+  if (!supabaseClient || typeof QRCode === "undefined") return;
+
+  const { data: token, error } = await supabaseClient.rpc("genera_qr_scontrino_pilot", {
+    p_scontrino_id: receiptId
+  });
+
+  if (error || !token) {
+    console.error("Errore generazione QR:", error);
+    return;
+  }
+
+  const qrUrl = `${window.location.origin}${window.location.pathname}?scan=${token}`;
+  el.qrScontrinoArea.hidden = false;
+  setQrStatus("QR generato. In attesa di scansione da parte del bar.", "loading");
+
+  try {
+    await QRCode.toCanvas(el.qrCanvas, qrUrl, { width: 220, margin: 1 });
+  } catch (err) {
+    console.error("Errore disegno QR:", err);
+    return;
+  }
+
+  startQrCountdown(Date.now() + 15 * 60 * 1000);
+}
+
+function startQrCountdown(expiresAt) {
+  if (qrTimerInterval) clearInterval(qrTimerInterval);
+  if (!el.qrTimer) return;
+
+  const tick = () => {
+    const remainingMs = expiresAt - Date.now();
+    if (remainingMs <= 0) {
+      el.qrTimer.textContent = "00:00";
+      el.qrTimer.dataset.expired = "true";
+      setQrStatus("QR scaduto. Lo scontrino resta in verifica SQ per approvazione manuale.", "error");
+      clearInterval(qrTimerInterval);
+      qrTimerInterval = null;
+      return;
+    }
+    const totalSeconds = Math.ceil(remainingMs / 1000);
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+    const seconds = String(totalSeconds % 60).padStart(2, "0");
+    el.qrTimer.textContent = `${minutes}:${seconds}`;
+    el.qrTimer.dataset.expired = "false";
+  };
+
+  tick();
+  qrTimerInterval = setInterval(tick, 1000);
+}
+
+function setQrStatus(message, status) {
+  if (!el.qrStatus) return;
+  el.qrStatus.textContent = message;
+  el.qrStatus.dataset.status = status;
+}
+
+async function openQrScanner() {
+  if (!el.qrScanVideo || !el.qrScanCanvas) return;
+  if (typeof jsQR === "undefined") {
+    setQrScanStatus("Libreria scanner QR non caricata.", "error");
+    return;
+  }
+
+  try {
+    qrScanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
+    });
+  } catch (err) {
+    setQrScanStatus("Impossibile accedere alla fotocamera.", "error");
+    return;
+  }
+
+  el.qrScanVideo.srcObject = qrScanStream;
+  el.qrScanPreview.hidden = false;
+  el.openQrScan.disabled = true;
+  el.closeQrScan.disabled = false;
+  setQrScanStatus("Inquadra il QR mostrato dal cliente.", "loading");
+
+  await el.qrScanVideo.play();
+  scanQrLoop();
+}
+
+function closeQrScanner() {
+  if (qrScanAnimFrame) {
+    cancelAnimationFrame(qrScanAnimFrame);
+    qrScanAnimFrame = null;
+  }
+  if (qrScanStream) {
+    qrScanStream.getTracks().forEach((track) => track.stop());
+    qrScanStream = null;
+  }
+  if (el.qrScanVideo) el.qrScanVideo.srcObject = null;
+  if (el.qrScanPreview) el.qrScanPreview.hidden = true;
+  if (el.openQrScan) el.openQrScan.disabled = false;
+  if (el.closeQrScan) el.closeQrScan.disabled = true;
+}
+
+function scanQrLoop() {
+  if (!qrScanStream || !el.qrScanVideo.videoWidth) {
+    qrScanAnimFrame = requestAnimationFrame(scanQrLoop);
+    return;
+  }
+
+  const canvas = el.qrScanCanvas;
+  canvas.width = el.qrScanVideo.videoWidth;
+  canvas.height = el.qrScanVideo.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(el.qrScanVideo, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+  if (code?.data) {
+    handleQrTokenFound(code.data);
+    return;
+  }
+
+  qrScanAnimFrame = requestAnimationFrame(scanQrLoop);
+}
+
+async function handleQrTokenFound(rawText) {
+  closeQrScanner();
+
+  let token;
+  try {
+    const url = new URL(rawText, window.location.origin);
+    token = url.searchParams.get("scan");
+  } catch {
+    token = null;
+  }
+  if (!token) {
+    setQrScanStatus("QR non riconosciuto: non contiene un codice valido.", "error");
+    return;
+  }
+
+  if (!supabaseClient) {
+    setQrScanStatus("Database non collegato.", "error");
+    return;
+  }
+
+  setQrScanStatus("Verifica QR in corso.", "loading");
+  const operatore = localStorage.getItem("sq_operatore") || null;
+  const { data, error } = await supabaseClient.rpc("conferma_qr_scontrino_pilot", {
+    p_token: token,
+    p_operatore: operatore
+  });
+
+  if (error) {
+    console.error("Errore conferma QR:", error);
+    setQrScanStatus(`Errore verifica QR: ${error.message}`, "error");
+    return;
+  }
+
+  if (!data?.ok) {
+    const messages = {
+      token_non_trovato: "QR non riconosciuto.",
+      gia_scansionato: "Questo QR e' gia' stato scansionato.",
+      scaduto: "QR scaduto: lo scontrino resta in verifica SQ."
+    };
+    setQrScanStatus(messages[data?.errore] || "QR non valido.", "error");
+    return;
+  }
+
+  setQrScanStatus(`Scontrino confermato: ${formatMoney(data.importo)} euro, credito ${formatMoney(data.credito)} euro SQ.`, "success");
+  showToast("Scontrino confermato via QR.");
+  loadPilotReceiptsFromSupabase();
+  loadPilotBalancesFromSupabase();
+}
+
+function setQrScanStatus(message, status) {
+  if (!el.qrScanStatus) return;
+  el.qrScanStatus.textContent = message;
+  el.qrScanStatus.dataset.status = status;
 }
 
 function stopReceiptSubmit(message) {
@@ -1500,7 +1694,7 @@ function validateReceiptAutomatically(receipt, duplicate) {
 
   const hasBarKeyword = BAR_VALIDATION_KEYWORDS.some((keyword) => ocrText.includes(keyword));
   if (!hasBarKeyword) {
-    warnings.push("bar non riconosciuto con sicurezza dal testo OCR");
+    issues.push("esercizio non riconosciuto: scontrino non proviene da esercizio aderente al progetto");
   }
 
   const approved = issues.length === 0;

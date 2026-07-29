@@ -576,6 +576,61 @@ button:focus {
   margin-bottom: 8px;
 }
 
+.qr-scontrino-area {
+  margin-top: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--surface);
+  text-align: center;
+}
+
+.qr-canvas {
+  display: block;
+  margin: 10px auto;
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.qr-timer {
+  margin: 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.qr-timer[data-expired="true"] {
+  color: var(--red);
+}
+
+.qr-scan-area {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.qr-scan-preview {
+  position: relative;
+  overflow: hidden;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0c1711;
+  aspect-ratio: 1 / 1;
+  max-width: 320px;
+}
+
+.qr-scan-preview video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .ocr-box__head strong {
   font-size: 14px;
 }
