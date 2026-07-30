@@ -236,6 +236,80 @@
                 <p class="form-status full" id="creditRequestStatus">La richiesta sara' controllata e confermata da Salute Quotidiana.</p>
                 <button class="primary full" type="submit">Invia richiesta</button>
               </form>
+              <details class="signup-box">
+                <summary>Dona il tuo credito alla Lista dei Silenziosi</summary>
+                <form id="donazioneSilenziosiForm" class="form">
+                  <p class="notice full">
+                    Il credito donato non torna indietro e va a sostenere persone fragili del territorio
+                    seguite da Salute Quotidiana, in forma anonima.
+                  </p>
+                  <label>
+                    Importo da donare (euro SQ)
+                    <input required type="number" min="0.01" step="0.01" name="importo" placeholder="0,00">
+                  </label>
+                  <p class="form-status full" id="donazioneSilenziosiStatus">Inserisci l'importo che vuoi donare, entro il tuo saldo disponibile.</p>
+                  <button class="primary full" type="submit">Dona ora</button>
+                </form>
+              </details>
+              <details class="signup-box">
+                <summary>Richiedi di essere ammesso alla Lista dei Silenziosi</summary>
+                <form id="valutazioneBisogniForm" class="form">
+                  <p class="notice full">
+                    Questo questionario aiuta Salute Quotidiana a capire chi ha piu' bisogno di essere
+                    sostenuto dal fondo. Non chiede dati sanitari o diagnosi, solo la situazione pratica.
+                    Puo' compilarlo il paziente stesso o un familiare per suo conto.
+                  </p>
+                  <label>
+                    Chi compila il questionario
+                    <select required name="compilatoDa">
+                      <option value="paziente">Il paziente stesso</option>
+                      <option value="familiare">Un familiare per suo conto</option>
+                    </select>
+                  </label>
+                  <label>
+                    Vive solo, senza nessuno che lo assista quotidianamente?
+                    <select required name="q1">
+                      <option value="0">No, c'e' sempre qualcuno</option>
+                      <option value="20">Si', vive solo</option>
+                    </select>
+                  </label>
+                  <label>
+                    Ha difficolta' a muoversi o uscire di casa da solo?
+                    <select required name="q2">
+                      <option value="0">Nessuna difficolta'</option>
+                      <option value="10">Qualche difficolta'</option>
+                      <option value="20">Difficolta' grave, non esce da solo</option>
+                    </select>
+                  </label>
+                  <label>
+                    Ha familiari vicini (figli o parenti nello stesso paese)?
+                    <select required name="q3">
+                      <option value="0">Si', presenti e vicini</option>
+                      <option value="20">No, nessuno vicino</option>
+                    </select>
+                  </label>
+                  <label>
+                    Ha gia' ricevuto credito SQ nell'ultimo mese?
+                    <select required name="q4">
+                      <option value="0">Si', abbastanza</option>
+                      <option value="20">No, nessun credito ricevuto</option>
+                    </select>
+                  </label>
+                  <label>
+                    Il reddito familiare e' sufficiente per le cure di cui ha bisogno?
+                    <select required name="q5">
+                      <option value="0">Si', sufficiente</option>
+                      <option value="20">No, non sufficiente</option>
+                    </select>
+                  </label>
+                  <label class="checkbox full">
+                    <input required type="checkbox" name="consensoValutazione">
+                    <span>Acconsento a che queste risposte siano trattate da Salute Quotidiana per decidere l'accesso al fondo Lista dei Silenziosi.</span>
+                  </label>
+                  <p class="form-status full" id="valutazioneBisogniStatus">Rispondi a tutte le domande e conferma il consenso per inviare.</p>
+                  <button class="primary full" type="submit">Invia richiesta di ammissione</button>
+                </form>
+              </details>
               <div class="mini-list" id="customerCreditRequests"></div>
               <div class="mini-list" id="customerHistory"></div>
               <div class="mini-list" id="customerRedemptionHistory"></div>
@@ -474,6 +548,36 @@
             </div>
             <div class="mini-list" id="redemptionHistory"></div>
           </section>
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Fondo condiviso</p>
+              <h2>Lista dei Silenziosi</h2>
+            </div>
+            <div class="notice">
+              Fondo alimentato da donazioni anonime, ripartito automaticamente tra i beneficiari ammessi
+              in proporzione al loro punteggio di bisogno. Nessun donatore e' mai indicato per nome.
+            </div>
+            <div class="metric-grid" id="silenziosiFondoMetrics"></div>
+            <div class="section-heading section-heading--compact">
+              <h2>Beneficiari ammessi</h2>
+            </div>
+            <div class="mini-list" id="silenziosiBeneficiariList"></div>
+            <div class="section-heading section-heading--compact">
+              <h2>Eroga prestazione da fondo</h2>
+            </div>
+            <form id="erogazioneSilenziosiForm" class="form">
+              <label>
+                Beneficiario
+                <select required name="beneficiarioClienteId" id="erogazioneSilenziosiBeneficiario"></select>
+              </label>
+              <label>
+                Prestazione
+                <select required name="tipoPrestazione" id="erogazioneSilenziosiPrestazione"></select>
+              </label>
+              <p class="form-status full" id="erogazioneSilenziosiStatus">Seleziona beneficiario e prestazione: la quota disponibile copre fino al costo pieno.</p>
+              <button class="primary full" type="submit">Eroga da fondo</button>
+            </form>
+          </section>
         </section>
 
         <section class="tab-panel" id="report" aria-labelledby="tab-report">
@@ -525,6 +629,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=52"></script>
+    <script src="app.js?v=53"></script>
   </body>
 </html>

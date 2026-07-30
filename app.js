@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v52";
+const APP_VERSION = "v53";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -128,6 +128,16 @@ const el = {
   creditRequestService: document.querySelector("#creditRequestService"),
   creditRequestBeneficiaryType: document.querySelector("#creditRequestBeneficiaryType"),
   creditRequestStatus: document.querySelector("#creditRequestStatus"),
+  donazioneSilenziosiForm: document.querySelector("#donazioneSilenziosiForm"),
+  donazioneSilenziosiStatus: document.querySelector("#donazioneSilenziosiStatus"),
+  valutazioneBisogniForm: document.querySelector("#valutazioneBisogniForm"),
+  valutazioneBisogniStatus: document.querySelector("#valutazioneBisogniStatus"),
+  silenziosiFondoMetrics: document.querySelector("#silenziosiFondoMetrics"),
+  silenziosiBeneficiariList: document.querySelector("#silenziosiBeneficiariList"),
+  erogazioneSilenziosiForm: document.querySelector("#erogazioneSilenziosiForm"),
+  erogazioneSilenziosiBeneficiario: document.querySelector("#erogazioneSilenziosiBeneficiario"),
+  erogazioneSilenziosiPrestazione: document.querySelector("#erogazioneSilenziosiPrestazione"),
+  erogazioneSilenziosiStatus: document.querySelector("#erogazioneSilenziosiStatus"),
   customerCreditRequests: document.querySelector("#customerCreditRequests"),
   creditRequestAlert: document.querySelector("#creditRequestAlert"),
   customerHistory: document.querySelector("#customerHistory"),
@@ -492,6 +502,9 @@ async function refreshPilotDataFromSupabase() {
     await loadPilotRedemptionsFromSupabase();
     await loadPilotBalancesFromSupabase();
     await loadCreditRequestsFromSupabase();
+    if (authRole === "salute_quotidiana" || authRole === "admin") {
+      await loadFondoSilenziosi();
+    }
   } finally {
     suppressLocalPersistence = false;
     pilotDataLoading = false;
@@ -743,6 +756,64 @@ async function loadPilotRedemptionsFromSupabase() {
   render();
 }
 
+let silenziosiBeneficiariCache = [];
+
+async function loadFondoSilenziosi() {
+  if (!supabaseClient) return;
+
+  const { data: saldoRows, error: saldoError } = await supabaseClient
+    .from("fondo_silenziosi_saldo_v")
+    .select("saldo_disponibile");
+
+  const { data: beneficiariRows, error: beneficiariError } = await supabaseClient
+    .from("fondo_silenziosi_beneficiari_v")
+    .select("cliente_id,punteggio,valutato_il,quota_disponibile")
+    .order("quota_disponibile", { ascending: false });
+
+  if (saldoError || beneficiariError) {
+    console.error("Errore caricamento Lista dei Silenziosi:", saldoError || beneficiariError);
+    return;
+  }
+
+  const saldoDisponibile = Number(saldoRows?.[0]?.saldo_disponibile || 0);
+  silenziosiBeneficiariCache = beneficiariRows || [];
+  renderFondoSilenziosi(saldoDisponibile, silenziosiBeneficiariCache);
+}
+
+function renderFondoSilenziosi(saldoDisponibile, beneficiari) {
+  if (el.silenziosiFondoMetrics) {
+    el.silenziosiFondoMetrics.innerHTML = `
+      <article><span>Saldo fondo disponibile</span><strong>${formatMoney(saldoDisponibile)} euro SQ</strong></article>
+      <article><span>Beneficiari ammessi</span><strong>${beneficiari.length}</strong></article>
+    `;
+  }
+
+  if (el.silenziosiBeneficiariList) {
+    el.silenziosiBeneficiariList.innerHTML = beneficiari.length
+      ? beneficiari.map((b) => {
+          const customer = getCustomer(b.cliente_id);
+          const nome = customer ? `${customer.firstName} ${customer.lastName}` : b.cliente_id;
+          return `<div class="mini-list__row"><span>${escapeHtml(nome)} — punteggio ${b.punteggio}</span><strong>${formatMoney(b.quota_disponibile)} euro SQ</strong></div>`;
+        }).join("")
+      : `<p class="form-status">Nessun beneficiario ammesso al momento.</p>`;
+  }
+
+  if (el.erogazioneSilenziosiBeneficiario) {
+    el.erogazioneSilenziosiBeneficiario.innerHTML = beneficiari.map((b) => {
+      const customer = getCustomer(b.cliente_id);
+      const nome = customer ? `${customer.firstName} ${customer.lastName}` : b.cliente_id;
+      return `<option value="${b.cliente_id}">${escapeHtml(nome)} — quota ${formatMoney(b.quota_disponibile)} euro</option>`;
+    }).join("");
+  }
+
+  if (el.erogazioneSilenziosiPrestazione && !el.erogazioneSilenziosiPrestazione.options.length) {
+    el.erogazioneSilenziosiPrestazione.innerHTML = Object.entries(services)
+      .filter(([, config]) => config.available !== false)
+      .map(([name, config]) => `<option value="${escapeHtml(name)}">${escapeHtml(name)} — ${formatMoney(config.price)} euro</option>`)
+      .join("");
+  }
+}
+
 function mapSupabaseRedemption(redemption) {
   return {
     id: redemption.id,
@@ -900,6 +971,9 @@ function wireEvents() {
 
   if (el.openQrScan) el.openQrScan.addEventListener("click", openQrScanner);
   if (el.closeQrScan) el.closeQrScan.addEventListener("click", closeQrScanner);
+  if (el.donazioneSilenziosiForm) el.donazioneSilenziosiForm.addEventListener("submit", handleDonazioneSilenziosiSubmit);
+  if (el.valutazioneBisogniForm) el.valutazioneBisogniForm.addEventListener("submit", handleValutazioneBisogniSubmit);
+  if (el.erogazioneSilenziosiForm) el.erogazioneSilenziosiForm.addEventListener("submit", handleErogazioneSilenziosiSubmit);
 }
 
 function setTodayDefaults() {
@@ -2308,6 +2382,175 @@ function setCreditRequestMessage(message, status) {
   } else {
     delete el.creditRequestStatus.dataset.status;
   }
+}
+
+async function handleDonazioneSilenziosiSubmit(event) {
+  event.preventDefault();
+
+  const customerId = getCurrentCustomerIdForRole();
+  if (!customerId) {
+    setDonazioneSilenziosiMessage("Prima completa il profilo cliente.", "error");
+    return;
+  }
+
+  const formEl = event.currentTarget;
+  const form = new FormData(formEl);
+  const importo = parseMoney(form.get("importo"));
+  const balance = getBalances(customerId).confirmed;
+
+  if (!importo || importo <= 0) {
+    setDonazioneSilenziosiMessage("Inserisci un importo valido.", "error");
+    return;
+  }
+
+  if (importo > balance) {
+    setDonazioneSilenziosiMessage(`Puoi donare al massimo il tuo saldo disponibile: ${formatMoney(balance)} euro.`, "error");
+    return;
+  }
+
+  if (!supabaseClient) {
+    setDonazioneSilenziosiMessage("Database non collegato.", "error");
+    return;
+  }
+
+  setDonazioneSilenziosiMessage("Donazione in corso.", "loading");
+  const { error } = await supabaseClient.rpc("dona_a_lista_silenziosi_pilot", {
+    p_cliente_id: customerId,
+    p_importo: importo
+  });
+
+  if (error) {
+    console.error("Errore donazione Lista Silenziosi:", error);
+    setDonazioneSilenziosiMessage(`Donazione non riuscita: ${error.message}`, "error");
+    return;
+  }
+
+  formEl.reset();
+  setDonazioneSilenziosiMessage(`Grazie. Hai donato ${formatMoney(importo)} euro SQ alla Lista dei Silenziosi.`, "success");
+  showToast("Donazione registrata. Grazie.");
+  loadPilotBalancesFromSupabase();
+}
+
+function setDonazioneSilenziosiMessage(message, status) {
+  if (!el.donazioneSilenziosiStatus) return;
+  el.donazioneSilenziosiStatus.textContent = message;
+  el.donazioneSilenziosiStatus.dataset.status = status;
+}
+
+async function handleValutazioneBisogniSubmit(event) {
+  event.preventDefault();
+
+  const customerId = getCurrentCustomerIdForRole();
+  if (!customerId) {
+    setValutazioneBisogniMessage("Prima completa il profilo cliente.", "error");
+    return;
+  }
+
+  const formEl = event.currentTarget;
+  const form = new FormData(formEl);
+  const compilatoDa = form.get("compilatoDa");
+  const risposte = {
+    vive_solo: Number(form.get("q1")),
+    difficolta_movimento: Number(form.get("q2")),
+    rete_familiare_assente: Number(form.get("q3")),
+    nessun_credito_recente: Number(form.get("q4")),
+    reddito_insufficiente: Number(form.get("q5"))
+  };
+  const punteggio = Object.values(risposte).reduce((acc, v) => acc + v, 0);
+  const consenso = !!form.get("consensoValutazione");
+
+  if (!consenso) {
+    setValutazioneBisogniMessage("Serve il consenso per inviare il questionario.", "error");
+    return;
+  }
+
+  if (!supabaseClient) {
+    setValutazioneBisogniMessage("Database non collegato.", "error");
+    return;
+  }
+
+  setValutazioneBisogniMessage("Invio in corso.", "loading");
+  const { error } = await supabaseClient.rpc("invia_valutazione_bisogno_pilot", {
+    p_cliente_id: customerId,
+    p_punteggio: punteggio,
+    p_risposte: risposte,
+    p_consenso: consenso,
+    p_compilato_da: compilatoDa
+  });
+
+  if (error) {
+    console.error("Errore invio valutazione bisogni:", error);
+    setValutazioneBisogniMessage(`Invio non riuscito: ${error.message}`, "error");
+    return;
+  }
+
+  formEl.reset();
+  setValutazioneBisogniMessage("Richiesta inviata. Salute Quotidiana la considerera' per il fondo Lista dei Silenziosi.", "success");
+  showToast("Questionario inviato.");
+}
+
+function setValutazioneBisogniMessage(message, status) {
+  if (!el.valutazioneBisogniStatus) return;
+  el.valutazioneBisogniStatus.textContent = message;
+  el.valutazioneBisogniStatus.dataset.status = status;
+}
+
+async function handleErogazioneSilenziosiSubmit(event) {
+  event.preventDefault();
+
+  if (!requireAccess("salute")) return;
+
+  const form = new FormData(event.currentTarget);
+  const beneficiarioClienteId = form.get("beneficiarioClienteId");
+  const tipoPrestazione = form.get("tipoPrestazione");
+  const serviceConfig = services[tipoPrestazione];
+
+  if (!beneficiarioClienteId || !serviceConfig) {
+    setErogazioneSilenziosiMessage("Seleziona beneficiario e prestazione validi.", "error");
+    return;
+  }
+
+  if (!supabaseClient) {
+    setErogazioneSilenziosiMessage("Database non collegato.", "error");
+    return;
+  }
+
+  setErogazioneSilenziosiMessage("Erogazione in corso.", "loading");
+  const { data, error } = await supabaseClient.rpc("eroga_da_lista_silenziosi_pilot", {
+    p_beneficiario_cliente_id: beneficiarioClienteId,
+    p_tipo_prestazione: tipoPrestazione,
+    p_prezzo_prestazione: serviceConfig.price,
+    p_importo_pagato_extra: 0
+  });
+
+  if (error) {
+    console.error("Errore erogazione Lista Silenziosi:", error);
+    setErogazioneSilenziosiMessage(`Erogazione non riuscita: ${error.message}`, "error");
+    return;
+  }
+
+  if (!data?.ok) {
+    const messaggi = {
+      beneficiario_non_ammesso: "Questo beneficiario non risulta piu' ammesso al fondo.",
+      fondo_esaurito: "La quota disponibile per questo beneficiario e' esaurita."
+    };
+    setErogazioneSilenziosiMessage(messaggi[data?.errore] || "Erogazione non riuscita.", "error");
+    return;
+  }
+
+  event.currentTarget.reset();
+  setErogazioneSilenziosiMessage(
+    `Erogati ${formatMoney(data.importo_erogato)} euro SQ dal fondo. Differenza da pagare: ${formatMoney(data.differenza_da_pagare)} euro.`,
+    "success"
+  );
+  showToast("Prestazione erogata dal fondo Lista dei Silenziosi.");
+  loadFondoSilenziosi();
+}
+
+function setErogazioneSilenziosiMessage(message, status) {
+  if (!el.erogazioneSilenziosiStatus) return;
+  el.erogazioneSilenziosiStatus.textContent = message;
+  el.erogazioneSilenziosiStatus.dataset.status = status;
 }
 
 function findDuplicateReceipt(receipt) {
