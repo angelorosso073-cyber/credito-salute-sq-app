@@ -1436,6 +1436,11 @@ async function submitReceipt(event) {
     return;
   }
 
+  if (!cleanText(form.get("matricolaRt"))) {
+    stopReceiptSubmit("Inserisci la matricola del registratore telematico (la trovi sullo scontrino).");
+    return;
+  }
+
   if (!amount || amount <= 0) {
     stopReceiptSubmit("Inserisci un importo valido.");
     return;
@@ -1461,6 +1466,7 @@ async function submitReceipt(event) {
     receiptDate: form.get("receiptDate"),
     receiptTime: form.get("receiptTime"),
     documentNumber: cleanText(form.get("documentNumber")),
+    matricolaRt: cleanText(form.get("matricolaRt")),
     amount,
     credit: roundMoney(amount * CREDIT_RATE),
     status: "pending",
@@ -1713,6 +1719,7 @@ function confirmReceiptData(receipt) {
     `Data: ${receipt.receiptDate || "mancante"}`,
     `Ora: ${receipt.receiptTime || "mancante"}`,
     `Documento: ${receipt.documentNumber || "mancante"}`,
+    `Matricola RT: ${receipt.matricolaRt || "mancante"}`,
     `Importo: ${formatMoney(receipt.amount)} euro`,
     `Credito SQ: ${formatMoney(receipt.credit)} euro`,
     "",
@@ -1810,12 +1817,22 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     p_stato: "in_verifica",
     p_avviso_duplicato: Boolean(duplicate),
     p_motivo_controllo: validation.message,
-    p_operatore_label: receipt.operatorLabel || null
+    p_operatore_label: receipt.operatorLabel || null,
+    p_matricola_rt: receipt.matricolaRt
   });
 
   if (error) {
     console.error("Errore salvataggio scontrino Supabase:", error);
-    return { ok: false, message: error.message };
+    const messaggiErrore = {
+      "scontrino duplicato: stessa matricola, numero documento, data e importo":
+        "Questo scontrino risulta gia' caricato (stessa matricola, numero documento, data e importo).",
+      "matricola registratore non riconosciuta per questo esercizio":
+        "Matricola non riconosciuta: controlla di averla copiata correttamente dallo scontrino.",
+      "data scontrino precedente all''avvio del programma":
+        "La data dello scontrino e' precedente all'avvio del programma."
+    };
+    const messaggioLeggibile = messaggiErrore[error.message] || error.message;
+    return { ok: false, message: messaggioLeggibile };
   }
 
   const autoApproved = validation.approved || validation.autoApprove || false;
