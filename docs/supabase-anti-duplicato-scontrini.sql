@@ -140,6 +140,10 @@ BEGIN
     RAISE EXCEPTION 'credito non valido';
   END IF;
 
+  IF p_stato NOT IN ('in_verifica', 'confermato') THEN
+    RAISE EXCEPTION 'stato non ammesso';
+  END IF;
+
   IF p_data_scontrino IS NULL THEN
     RAISE EXCEPTION 'data scontrino mancante';
   END IF;
@@ -221,5 +225,12 @@ GRANT EXECUTE ON FUNCTION public.registra_scontrino_pilot(
   uuid, uuid, uuid, text, date, time, text,
   numeric, numeric, numeric, numeric, text, boolean, text, text, text
 ) TO authenticated;
+
+-- 5. Registro la matricola RT reale del Bar pilota Francofonte.
+INSERT INTO public.registratori_telematici (bar_id, matricola)
+SELECT id, '2CISI000611'
+FROM public.bar
+WHERE nome = 'Bar pilota Francofonte'
+ON CONFLICT (bar_id, matricola) DO NOTHING;
 
 NOTIFY pgrst, 'reload schema';
