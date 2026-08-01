@@ -1828,7 +1828,7 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
         "Questo scontrino risulta gia' caricato (stessa matricola, numero documento, data e importo).",
       "matricola registratore non riconosciuta per questo esercizio":
         "Matricola non riconosciuta: controlla di averla copiata correttamente dallo scontrino.",
-      "data scontrino precedente all''avvio del programma":
+      "data scontrino precedente all'avvio del programma":
         "La data dello scontrino e' precedente all'avvio del programma."
     };
     const messaggioLeggibile = messaggiErrore[error.message] || error.message;
