@@ -854,6 +854,19 @@ button:focus {
   background: #fff1f1;
 }
 
+.status-expired {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.credito-sospeso-area {
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 12px;
+  background: var(--surface-soft);
+}
+
 .rules ol {
   margin: 0;
   padding-left: 22px;

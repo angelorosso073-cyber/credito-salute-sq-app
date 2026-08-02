@@ -97,9 +97,6 @@ let authRole = "guest";
 let authReady = false;
 let pilotDataLoading = false;
 let suppressLocalPersistence = false;
-let qrTimerInterval = null;
-let qrScanStream = null;
-let qrScanAnimFrame = null;
 
 const el = {
   tabs: document.querySelectorAll(".tab-button"),
@@ -191,17 +188,18 @@ const el = {
   redemptionMessageArea: document.querySelector("#redemptionMessageArea"),
   redemptionBarText: document.querySelector("#redemptionBarText"),
   copyBarPaymentBtn: document.querySelector("#copyBarPaymentBtn"),
-  qrScontrinoArea: document.querySelector("#qrScontrinoArea"),
-  qrCanvas: document.querySelector("#qrCanvas"),
-  qrTimer: document.querySelector("#qrTimer"),
-  qrStatus: document.querySelector("#qrStatus"),
-  qrScanArea: document.querySelector("#qrScanArea"),
-  openQrScan: document.querySelector("#openQrScan"),
-  closeQrScan: document.querySelector("#closeQrScan"),
-  qrScanPreview: document.querySelector("#qrScanPreview"),
-  qrScanVideo: document.querySelector("#qrScanVideo"),
-  qrScanCanvas: document.querySelector("#qrScanCanvas"),
-  qrScanStatus: document.querySelector("#qrScanStatus")
+  codiceBancoInput: document.querySelector("#codiceBancoInput"),
+  openCodiceBancoScan: document.querySelector("#openCodiceBancoScan"),
+  closeCodiceBancoScan: document.querySelector("#closeCodiceBancoScan"),
+  codiceBancoScanPreview: document.querySelector("#codiceBancoScanPreview"),
+  codiceBancoScanVideo: document.querySelector("#codiceBancoScanVideo"),
+  codiceBancoScanCanvas: document.querySelector("#codiceBancoScanCanvas"),
+  codiceBancoStatus: document.querySelector("#codiceBancoStatus"),
+  creditoSospesoArea: document.querySelector("#creditoSospesoArea"),
+  creditoSospesoScadenza: document.querySelector("#creditoSospesoScadenza"),
+  attivaCodiceInput: document.querySelector("#attivaCodiceInput"),
+  attivaCodiceBtn: document.querySelector("#attivaCodiceBtn"),
+  attivaCodiceStatus: document.querySelector("#attivaCodiceStatus"),
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -685,6 +683,8 @@ function mapSupabaseReceipt(receipt) {
     amount: Number(receipt.importo_dichiarato || 0),
     credit: Number(receipt.credito_generato || 0),
     status: mapSupabaseReceiptStatus(receipt.stato),
+    motivoSospensione: receipt.motivo_sospensione || null,
+    sospesoScadutoIl: receipt.sospeso_scaduto_il || null,
     note: receipt.motivo_rifiuto || (receipt.avviso_duplicato ? "Possibile duplicato." : ""),
     ocr: text ? createOcrSnapshot(text, fields, 0) : null,
     imageData: "",
@@ -696,7 +696,8 @@ function mapSupabaseReceiptStatus(status) {
   const statuses = {
     confermato: "confirmed",
     in_verifica: "pending",
-    rifiutato: "rejected"
+    rifiutato: "rejected",
+    scaduto: "expired"
   };
 
   return statuses[status] || "pending";
@@ -1051,8 +1052,9 @@ function wireEvents() {
   if (cambiaBtnOp) cambiaBtnOp.addEventListener("click", () => { localStorage.removeItem("sq_operatore"); initCassiereOperatore(); });
   if (el.copyBarPaymentBtn) el.copyBarPaymentBtn.addEventListener("click", () => { if (lastRedemptionId) copyBarPaymentMessage(lastRedemptionId); });
 
-  if (el.openQrScan) el.openQrScan.addEventListener("click", openQrScanner);
-  if (el.closeQrScan) el.closeQrScan.addEventListener("click", closeQrScanner);
+  if (el.openCodiceBancoScan) el.openCodiceBancoScan.addEventListener("click", openCodiceBancoScanner);
+  if (el.closeCodiceBancoScan) el.closeCodiceBancoScan.addEventListener("click", closeCodiceBancoScanner);
+  if (el.attivaCodiceBtn) el.attivaCodiceBtn.addEventListener("click", handleAttivaCodiceBanco);
   if (el.donazioneSilenziosiForm) el.donazioneSilenziosiForm.addEventListener("submit", handleDonazioneSilenziosiSubmit);
   if (el.valutazioneBisogniForm) el.valutazioneBisogniForm.addEventListener("submit", handleValutazioneBisogniSubmit);
   if (el.erogazioneSilenziosiForm) el.erogazioneSilenziosiForm.addEventListener("submit", handleErogazioneSilenziosiSubmit);
@@ -1550,6 +1552,7 @@ async function submitReceipt(event) {
     receiptTime: form.get("receiptTime"),
     documentNumber: cleanText(form.get("documentNumber")),
     matricolaRt: cleanText(form.get("matricolaRt")),
+    codiceBanco: cleanText(form.get("codiceBanco")),
     amount,
     credit: roundMoney(amount * CREDIT_RATE),
     status: "pending",
@@ -1598,189 +1601,166 @@ async function submitReceipt(event) {
   if (supabaseResult.autoApproved) {
     setReceiptSubmitStatus("Credito accreditato automaticamente.", "success");
     showToast("Credito accreditato.");
+  } else if (supabaseResult.motivoSospensione === "codice_banco_mancante") {
+    const scadenza = supabaseResult.sospesoScadutoIl
+      ? new Date(supabaseResult.sospesoScadutoIl).toLocaleDateString("it-IT")
+      : "";
+    setReceiptSubmitStatus(
+      `Scontrino inviato. Credito in sospeso: passa dal bar per attivarlo${scadenza ? ` entro il ${scadenza}` : ""}.`,
+      "success"
+    );
+    showToast("Credito in sospeso: passa dal bar per attivarlo.");
   } else {
     setReceiptSubmitStatus("Scontrino inviato — in attesa di verifica SQ.", "success");
     showToast("Scontrino inviato. In attesa di verifica SQ.");
   }
-  await generateAndShowQr(receipt.id);
   loadPilotReceiptsFromSupabase();
   loadPilotBalancesFromSupabase();
 }
 
-async function generateAndShowQr(receiptId) {
-  if (!el.qrScontrinoArea || !el.qrCanvas) return;
-  if (!supabaseClient || typeof QRCode === "undefined") return;
+let codiceBancoScanStream = null;
+let codiceBancoScanAnimFrame = null;
 
-  const { data: token, error } = await supabaseClient.rpc("genera_qr_scontrino_pilot", {
-    p_scontrino_id: receiptId
-  });
-
-  if (error || !token) {
-    console.error("Errore generazione QR:", error);
-    return;
-  }
-
-  const qrUrl = `${window.location.origin}${window.location.pathname}?scan=${token}`;
-  el.qrScontrinoArea.hidden = false;
-  setQrStatus("QR generato. In attesa di scansione da parte del bar.", "loading");
-
-  try {
-    await QRCode.toCanvas(el.qrCanvas, qrUrl, { width: 220, margin: 1 });
-  } catch (err) {
-    console.error("Errore disegno QR:", err);
-    return;
-  }
-
-  startQrCountdown(Date.now() + 15 * 60 * 1000);
-}
-
-function startQrCountdown(expiresAt) {
-  if (qrTimerInterval) clearInterval(qrTimerInterval);
-  if (!el.qrTimer) return;
-
-  const tick = () => {
-    const remainingMs = expiresAt - Date.now();
-    if (remainingMs <= 0) {
-      el.qrTimer.textContent = "00:00";
-      el.qrTimer.dataset.expired = "true";
-      setQrStatus("QR scaduto. Lo scontrino resta in verifica SQ per approvazione manuale.", "error");
-      clearInterval(qrTimerInterval);
-      qrTimerInterval = null;
-      return;
-    }
-    const totalSeconds = Math.ceil(remainingMs / 1000);
-    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
-    const seconds = String(totalSeconds % 60).padStart(2, "0");
-    el.qrTimer.textContent = `${minutes}:${seconds}`;
-    el.qrTimer.dataset.expired = "false";
-  };
-
-  tick();
-  qrTimerInterval = setInterval(tick, 1000);
-}
-
-function setQrStatus(message, status) {
-  if (!el.qrStatus) return;
-  el.qrStatus.textContent = message;
-  el.qrStatus.dataset.status = status;
-}
-
-async function openQrScanner() {
-  if (!el.qrScanVideo || !el.qrScanCanvas) return;
+async function openCodiceBancoScanner() {
+  if (!el.codiceBancoScanVideo || !el.codiceBancoScanCanvas) return;
   if (typeof jsQR === "undefined") {
-    setQrScanStatus("Libreria scanner QR non caricata.", "error");
+    setCodiceBancoStatus("Libreria scanner QR non caricata. Digita il codice a mano.", "error");
     return;
   }
 
   try {
-    qrScanStream = await navigator.mediaDevices.getUserMedia({
+    codiceBancoScanStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" }
     });
   } catch (err) {
-    setQrScanStatus("Impossibile accedere alla fotocamera.", "error");
+    setCodiceBancoStatus("Impossibile accedere alla fotocamera. Digita il codice a mano.", "error");
     return;
   }
 
-  el.qrScanVideo.srcObject = qrScanStream;
-  el.qrScanPreview.hidden = false;
-  el.openQrScan.disabled = true;
-  el.closeQrScan.disabled = false;
-  setQrScanStatus("Inquadra il QR mostrato dal cliente.", "loading");
+  el.codiceBancoScanVideo.srcObject = codiceBancoScanStream;
+  el.codiceBancoScanPreview.hidden = false;
+  el.openCodiceBancoScan.disabled = true;
+  el.closeCodiceBancoScan.disabled = false;
+  setCodiceBancoStatus("Inquadra il QR mostrato al banco.", "loading");
 
-  await el.qrScanVideo.play();
-  scanQrLoop();
+  await el.codiceBancoScanVideo.play();
+  codiceBancoScanLoop();
 }
 
-function closeQrScanner() {
-  if (qrScanAnimFrame) {
-    cancelAnimationFrame(qrScanAnimFrame);
-    qrScanAnimFrame = null;
+function closeCodiceBancoScanner() {
+  if (codiceBancoScanAnimFrame) {
+    cancelAnimationFrame(codiceBancoScanAnimFrame);
+    codiceBancoScanAnimFrame = null;
   }
-  if (qrScanStream) {
-    qrScanStream.getTracks().forEach((track) => track.stop());
-    qrScanStream = null;
+  if (codiceBancoScanStream) {
+    codiceBancoScanStream.getTracks().forEach((track) => track.stop());
+    codiceBancoScanStream = null;
   }
-  if (el.qrScanVideo) el.qrScanVideo.srcObject = null;
-  if (el.qrScanPreview) el.qrScanPreview.hidden = true;
-  if (el.openQrScan) el.openQrScan.disabled = false;
-  if (el.closeQrScan) el.closeQrScan.disabled = true;
+  if (el.codiceBancoScanVideo) el.codiceBancoScanVideo.srcObject = null;
+  if (el.codiceBancoScanPreview) el.codiceBancoScanPreview.hidden = true;
+  if (el.openCodiceBancoScan) el.openCodiceBancoScan.disabled = false;
+  if (el.closeCodiceBancoScan) el.closeCodiceBancoScan.disabled = true;
 }
 
-function scanQrLoop() {
-  if (!qrScanStream || !el.qrScanVideo.videoWidth) {
-    qrScanAnimFrame = requestAnimationFrame(scanQrLoop);
+function codiceBancoScanLoop() {
+  if (!codiceBancoScanStream || !el.codiceBancoScanVideo.videoWidth) {
+    codiceBancoScanAnimFrame = requestAnimationFrame(codiceBancoScanLoop);
     return;
   }
 
-  const canvas = el.qrScanCanvas;
-  canvas.width = el.qrScanVideo.videoWidth;
-  canvas.height = el.qrScanVideo.videoHeight;
+  const canvas = el.codiceBancoScanCanvas;
+  canvas.width = el.codiceBancoScanVideo.videoWidth;
+  canvas.height = el.codiceBancoScanVideo.videoHeight;
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(el.qrScanVideo, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(el.codiceBancoScanVideo, 0, 0, canvas.width, canvas.height);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const code = jsQR(imageData.data, canvas.width, canvas.height);
 
-  if (code?.data) {
-    handleQrTokenFound(code.data);
+  if (code?.data && /^\d{6}$/.test(code.data.trim())) {
+    if (el.codiceBancoInput) el.codiceBancoInput.value = code.data.trim();
+    setCodiceBancoStatus("Codice letto dal QR del banco.", "success");
+    closeCodiceBancoScanner();
     return;
   }
 
-  qrScanAnimFrame = requestAnimationFrame(scanQrLoop);
+  codiceBancoScanAnimFrame = requestAnimationFrame(codiceBancoScanLoop);
 }
 
-async function handleQrTokenFound(rawText) {
-  closeQrScanner();
+function setCodiceBancoStatus(message, status) {
+  if (!el.codiceBancoStatus) return;
+  el.codiceBancoStatus.textContent = message;
+  el.codiceBancoStatus.dataset.status = status;
+}
 
-  let token;
-  try {
-    const url = new URL(rawText, window.location.origin);
-    token = url.searchParams.get("scan");
-  } catch {
-    token = null;
-  }
-  if (!token) {
-    setQrScanStatus("QR non riconosciuto: non contiene un codice valido.", "error");
+async function handleAttivaCodiceBanco() {
+  const scontrinoId = el.attivaCodiceBtn?.dataset.scontrinoId;
+  const codice = cleanText(el.attivaCodiceInput?.value);
+
+  if (!scontrinoId || !codice) {
+    setAttivaCodiceStatus("Inserisci il codice mostrato al banco.", "error");
     return;
   }
 
   if (!supabaseClient) {
-    setQrScanStatus("Database non collegato.", "error");
+    setAttivaCodiceStatus("Database non collegato.", "error");
     return;
   }
 
-  setQrScanStatus("Verifica QR in corso.", "loading");
-  const operatore = localStorage.getItem("sq_operatore") || null;
-  const { data, error } = await supabaseClient.rpc("conferma_qr_scontrino_pilot", {
-    p_token: token,
-    p_operatore: operatore
+  setAttivaCodiceStatus("Verifica in corso.", "loading");
+  const { data, error } = await supabaseClient.rpc("attiva_scontrino_con_codice_banco_pilot", {
+    p_scontrino_id: scontrinoId,
+    p_codice: codice
   });
 
   if (error) {
-    console.error("Errore conferma QR:", error);
-    setQrScanStatus(`Errore verifica QR: ${error.message}`, "error");
+    console.error("Errore attivazione codice banco:", error);
+    setAttivaCodiceStatus(`Errore: ${error.message}`, "error");
     return;
   }
 
   if (!data?.ok) {
-    const messages = {
-      token_non_trovato: "QR non riconosciuto.",
-      gia_scansionato: "Questo QR e' gia' stato scansionato.",
-      scaduto: "QR scaduto: lo scontrino resta in verifica SQ."
+    const messaggi = {
+      codice_non_valido: "Codice non valido: controlla che sia quello mostrato ora al banco.",
+      scaduto: "Il periodo per attivare questo credito e' scaduto.",
+      non_attivabile: "Questo scontrino non e' (piu') attivabile con un codice."
     };
-    setQrScanStatus(messages[data?.errore] || "QR non valido.", "error");
+    setAttivaCodiceStatus(messaggi[data?.errore] || "Attivazione non riuscita.", "error");
     return;
   }
 
-  setQrScanStatus(`Scontrino confermato: ${formatMoney(data.importo)} euro, credito ${formatMoney(data.credito)} euro SQ.`, "success");
-  showToast("Scontrino confermato via QR.");
+  setAttivaCodiceStatus("Credito attivato. Ora e' spendibile.", "success");
+  showToast("Credito attivato.");
+  if (el.creditoSospesoArea) el.creditoSospesoArea.hidden = true;
   loadPilotReceiptsFromSupabase();
   loadPilotBalancesFromSupabase();
 }
 
-function setQrScanStatus(message, status) {
-  if (!el.qrScanStatus) return;
-  el.qrScanStatus.textContent = message;
-  el.qrScanStatus.dataset.status = status;
+function setAttivaCodiceStatus(message, status) {
+  if (!el.attivaCodiceStatus) return;
+  el.attivaCodiceStatus.textContent = message;
+  el.attivaCodiceStatus.dataset.status = status;
+}
+
+function aggiornaAreaCreditoSospeso() {
+  if (!el.creditoSospesoArea) return;
+
+  const customerId = getCurrentCustomerIdForRole();
+  const sospeso = state.receipts.find((r) =>
+    r.customerId === customerId &&
+    r.status === "pending" &&
+    r.motivoSospensione === "codice_banco_mancante"
+  );
+
+  if (!sospeso) {
+    el.creditoSospesoArea.hidden = true;
+    return;
+  }
+
+  el.creditoSospesoArea.hidden = false;
+  el.creditoSospesoScadenza.textContent = sospeso.sospesoScadutoIl
+    ? `scade il ${new Date(sospeso.sospesoScadutoIl).toLocaleDateString("it-IT")}`
+    : "scadenza non disponibile";
+  if (el.attivaCodiceBtn) el.attivaCodiceBtn.dataset.scontrinoId = sospeso.id;
 }
 
 function stopReceiptSubmit(message) {
@@ -1901,7 +1881,8 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     p_avviso_duplicato: Boolean(duplicate),
     p_motivo_controllo: validation.message,
     p_operatore_label: receipt.operatorLabel || null,
-    p_matricola_rt: receipt.matricolaRt
+    p_matricola_rt: receipt.matricolaRt,
+    p_codice_banco: receipt.codiceBanco || null
   });
 
   if (error) {
@@ -1920,8 +1901,23 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     return { ok: false, message: messaggioLeggibile };
   }
 
-  const autoApproved = validation.approved || validation.autoApprove || false;
-  return { ok: true, id: data, autoApproved };
+  const { data: rigaInserita, error: erroreLettura } = await supabaseClient
+    .from("scontrini_app_pilot")
+    .select("stato,motivo_sospensione,sospeso_scaduto_il")
+    .eq("id", data)
+    .single();
+
+  if (erroreLettura || !rigaInserita) {
+    return { ok: true, id: data, autoApproved: false };
+  }
+
+  return {
+    ok: true,
+    id: data,
+    autoApproved: rigaInserita.stato === "confermato",
+    motivoSospensione: rigaInserita.motivo_sospensione,
+    sospesoScadutoIl: rigaInserita.sospeso_scaduto_il
+  };
 }
 
 async function handleReceiptImageChange() {
@@ -2703,6 +2699,7 @@ function render() {
   renderSaluteTabBadge();
   updateRedemptionStatusText();
   renderHeader();
+  aggiornaAreaCreditoSospeso();
 }
 
 function renderAuthState() {
@@ -3869,7 +3866,8 @@ function statusLabel(status) {
   const labels = {
     pending: "In verifica",
     confirmed: "Confermato",
-    rejected: "Rifiutato"
+    rejected: "Rifiutato",
+    expired: "Scaduto"
   };
   return labels[status] || status;
 }
