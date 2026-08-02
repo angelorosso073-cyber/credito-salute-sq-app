@@ -138,6 +138,7 @@ const el = {
   erogazioneSilenziosiBeneficiario: document.querySelector("#erogazioneSilenziosiBeneficiario"),
   erogazioneSilenziosiPrestazione: document.querySelector("#erogazioneSilenziosiPrestazione"),
   erogazioneSilenziosiStatus: document.querySelector("#erogazioneSilenziosiStatus"),
+  revisioneManualeList: document.querySelector("#revisioneManualeList"),
   customerCreditRequests: document.querySelector("#customerCreditRequests"),
   creditRequestAlert: document.querySelector("#creditRequestAlert"),
   customerHistory: document.querySelector("#customerHistory"),
@@ -504,6 +505,7 @@ async function refreshPilotDataFromSupabase() {
     await loadCreditRequestsFromSupabase();
     if (authRole === "salute_quotidiana" || authRole === "admin") {
       await loadFondoSilenziosi();
+      await loadRevisioneManuale();
     }
   } finally {
     suppressLocalPersistence = false;
@@ -698,6 +700,86 @@ function mapSupabaseReceiptStatus(status) {
   };
 
   return statuses[status] || "pending";
+}
+
+async function loadRevisioneManuale() {
+  if (!supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from("scontrini_revisione_manuale_pilot")
+    .select("id,cliente_id,codice_cliente,nome,cognome,data_scontrino,numero_documento,importo_dichiarato,credito_generato,created_at");
+
+  if (error) {
+    console.error("Errore caricamento revisione manuale:", error);
+    return;
+  }
+
+  renderRevisioneManuale(data || []);
+}
+
+function renderRevisioneManuale(righe) {
+  if (!el.revisioneManualeList) return;
+
+  el.revisioneManualeList.innerHTML = righe.length
+    ? righe.map((r) => `
+        <div class="mini-list__row">
+          <span>${escapeHtml(r.nome)} ${escapeHtml(r.cognome)} (${escapeHtml(r.codice_cliente)}) — ${r.data_scontrino} — doc. ${escapeHtml(r.numero_documento || "-")}</span>
+          <strong>${formatMoney(r.importo_dichiarato)} euro — credito ${formatMoney(r.credito_generato)} euro SQ</strong>
+          <div class="mini-list__actions">
+            <button type="button" class="secondary small" data-revisione-conferma="${r.id}" data-revisione-importo="${r.importo_dichiarato}" data-revisione-credito="${r.credito_generato}">Conferma</button>
+            <button type="button" class="secondary small" data-revisione-rifiuta="${r.id}">Rifiuta</button>
+          </div>
+        </div>
+      `).join("")
+    : `<p class="form-status">Nessuno scontrino in revisione manuale.</p>`;
+}
+
+async function handleRevisioneManualeClick(event) {
+  const confermaId = event.target.dataset.revisioneConferma;
+  const rifiutaId = event.target.dataset.revisioneRifiuta;
+  if (!confermaId && !rifiutaId) return;
+
+  if (!supabaseClient) return;
+
+  if (confermaId) {
+    const importo = Number(event.target.dataset.revisioneImporto);
+    const credito = Number(event.target.dataset.revisioneCredito);
+    const { error } = await supabaseClient.rpc("aggiorna_scontrino_pilot", {
+      p_id: confermaId,
+      p_stato: "confermato",
+      p_importo_dichiarato: importo,
+      p_importo_verificato: importo,
+      p_credito_generato: credito,
+      p_motivo_controllo: "Confermato manualmente dopo revisione importo elevato."
+    });
+    if (error) {
+      console.error("Errore conferma revisione manuale:", error);
+      showToast(`Errore: ${error.message}`);
+      return;
+    }
+    showToast("Scontrino confermato.");
+  }
+
+  if (rifiutaId) {
+    const { error } = await supabaseClient.rpc("aggiorna_scontrino_pilot", {
+      p_id: rifiutaId,
+      p_stato: "rifiutato",
+      p_importo_dichiarato: null,
+      p_importo_verificato: null,
+      p_credito_generato: 0,
+      p_motivo_controllo: "Rifiutato dopo revisione manuale importo elevato."
+    });
+    if (error) {
+      console.error("Errore rifiuto revisione manuale:", error);
+      showToast(`Errore: ${error.message}`);
+      return;
+    }
+    showToast("Scontrino rifiutato.");
+  }
+
+  loadRevisioneManuale();
+  loadPilotReceiptsFromSupabase();
+  loadPilotBalancesFromSupabase();
 }
 
 async function loadPilotBalancesFromSupabase() {
@@ -974,6 +1056,7 @@ function wireEvents() {
   if (el.donazioneSilenziosiForm) el.donazioneSilenziosiForm.addEventListener("submit", handleDonazioneSilenziosiSubmit);
   if (el.valutazioneBisogniForm) el.valutazioneBisogniForm.addEventListener("submit", handleValutazioneBisogniSubmit);
   if (el.erogazioneSilenziosiForm) el.erogazioneSilenziosiForm.addEventListener("submit", handleErogazioneSilenziosiSubmit);
+  if (el.revisioneManualeList) el.revisioneManualeList.addEventListener("click", handleRevisioneManualeClick);
 }
 
 function setTodayDefaults() {
@@ -1829,7 +1912,9 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
       "matricola registratore non riconosciuta per questo esercizio":
         "Matricola non riconosciuta: controlla di averla copiata correttamente dallo scontrino.",
       "data scontrino precedente all'avvio del programma":
-        "La data dello scontrino e' precedente all'avvio del programma."
+        "La data dello scontrino e' precedente all'avvio del programma.",
+      "tetto giornaliero di scontrini raggiunto per questo cliente":
+        "Hai raggiunto il numero massimo di scontrini caricabili oggi. Riprova domani."
     };
     const messaggioLeggibile = messaggiErrore[error.message] || error.message;
     return { ok: false, message: messaggioLeggibile };
