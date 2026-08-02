@@ -462,7 +462,7 @@ async function loadPilotReceiptsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("scontrini_app_pilot")
-    .select("id,cliente_id,testo_ocr,data_scontrino,ora_scontrino,numero_documento,importo_dichiarato,importo_ocr,credito_generato,stato,avviso_duplicato,motivo_rifiuto,created_at")
+    .select("id,cliente_id,testo_ocr,data_scontrino,ora_scontrino,numero_documento,importo_dichiarato,importo_ocr,credito_generato,stato,avviso_duplicato,motivo_rifiuto,motivo_sospensione,sospeso_scaduto_il,created_at")
     .order("created_at", { ascending: false })
     .limit(100);
 
