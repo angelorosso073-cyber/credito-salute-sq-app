@@ -98,7 +98,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.verifica_codice_banco_interna(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.verifica_codice_banco_interna(uuid, text) FROM PUBLIC, anon, authenticated;
 
 -- 6. RPC pubblica per il dispositivo banco (nessun login): restituisce solo il codice
 --    attuale e i secondi rimanenti, mai il segreto.
@@ -251,6 +251,14 @@ AS $$
 DECLARE
   righe_aggiornate INTEGER;
 BEGIN
+  -- Nota per Task 8 (pg_cron): questa guardia richiede che il job pg_cron esegua in un
+  -- contesto che soddisfa e_admin()/e_salute_quotidiana() (es. SECURITY DEFINER con un
+  -- ruolo/profilo idoneo, o un service role riconosciuto da quelle funzioni) — da
+  -- riconciliare quando si configura lo scheduling.
+  IF NOT (public.e_admin() OR public.e_salute_quotidiana()) THEN
+    RAISE EXCEPTION 'ruolo non autorizzato';
+  END IF;
+
   UPDATE public.scontrini
   SET stato = 'scaduto'
   WHERE stato = 'in_verifica'
