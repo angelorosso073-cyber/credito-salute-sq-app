@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Codice bar — Credito Salute SQ</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #0f2438;
+    color: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .schermo {
+    width: min(100%, 520px);
+    padding: 32px;
+    text-align: center;
+  }
+  .eyebrow {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7fb0e0;
+    font-size: 14px;
+    margin: 0 0 6px;
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 28px;
+  }
+  .codice {
+    font-size: 88px;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    margin: 0 0 20px;
+    font-variant-numeric: tabular-nums;
+  }
+  canvas {
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .barra {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 24px 0 8px;
+  }
+  .barra__interno {
+    height: 100%;
+    background: #4ea1f7;
+    transition: width 1s linear;
+  }
+  .stato {
+    font-size: 15px;
+    color: #a9c4e0;
+    min-height: 20px;
+  }
+  .setup {
+    margin-top: 24px;
+  }
+  .setup input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+  }
+  .setup button {
+    margin-top: 10px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background: #4ea1f7;
+    color: #06111d;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="schermo">
+    <div id="areaCodice" hidden>
+      <p class="eyebrow" id="nomeBar">Bar</p>
+      <h1>Mostra questo codice al cliente per attivare il credito SQ</h1>
+      <p class="codice" id="cifreCodice">------</p>
+      <canvas id="qrCanvas" width="220" height="220"></canvas>
+      <div class="barra"><div class="barra__interno" id="barraInterno"></div></div>
+      <p class="stato" id="stato">Connessione in corso.</p>
+    </div>
+    <div id="areaSetup" class="setup" hidden>
+      <p class="eyebrow">Configurazione dispositivo</p>
+      <p>Incolla qui il link ricevuto da Salute Quotidiana (contiene già il codice del dispositivo), oppure il solo token.</p>
+      <input id="inputToken" type="text" placeholder="Token dispositivo banco">
+      <button type="button" id="salvaToken">Salva e continua</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script>
+    const SUPABASE_URL = window.__SQ_BANCO_SUPABASE_URL__ || "https://qenfaqdtzmsestpdpibo.supabase.co";
+    const SUPABASE_ANON_KEY = window.__SQ_BANCO_SUPABASE_ANON_KEY__ || "sb_publishable_2r0GmAxXUtbA9yzkvaZXTw_nPx_KKxd";
+
+    const areaCodice = document.getElementById("areaCodice");
+    const areaSetup = document.getElementById("areaSetup");
+    const nomeBarEl = document.getElementById("nomeBar");
+    const cifreCodiceEl = document.getElementById("cifreCodice");
+    const statoEl = document.getElementById("stato");
+    const barraInternoEl = document.getElementById("barraInterno");
+    const qrCanvas = document.getElementById("qrCanvas");
+    const inputToken = document.getElementById("inputToken");
+    const salvaTokenBtn = document.getElementById("salvaToken");
+
+    let refreshTimer = null;
+    let countdownTimer = null;
+
+    function getToken() {
+      const params = new URLSearchParams(window.location.search);
+      const daUrl = params.get("token");
+      if (daUrl) return daUrl;
+      return localStorage.getItem("sq_banco_token");
+    }
+
+    function estraiToken(valore) {
+      const pulito = valore.trim();
+      try {
+        const url = new URL(pulito);
+        const dallaQuery = url.searchParams.get("token");
+        if (dallaQuery) return dallaQuery;
+      } catch {
+        // non e' un URL, va bene: e' probabilmente gia' il token
+      }
+      return pulito;
+    }
+
+    async function chiamaRpc(nome, corpo) {
+      const risposta = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${nome}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify(corpo)
+      });
+      return risposta.json();
+    }
+
+    async function aggiornaCodice() {
+      const token = getToken();
+      if (!token) {
+        mostraSetup();
+        return;
+      }
+
+      const dati = await chiamaRpc("richiedi_codice_banco_pilot", { p_banco_token: token });
+
+      if (!dati?.ok) {
+        statoEl.textContent = "Dispositivo non riconosciuto. Verifica il token.";
+        return;
+      }
+
+      areaSetup.hidden = true;
+      areaCodice.hidden = false;
+      nomeBarEl.textContent = dati.bar_nome || "Bar";
+      cifreCodiceEl.textContent = dati.codice;
+      statoEl.textContent = "Codice attivo.";
+
+      try {
+        await QRCode.toCanvas(qrCanvas, dati.codice, { width: 220, margin: 1 });
+      } catch (err) {
+        console.error("Errore disegno QR banco:", err);
+      }
+
+      avviaCountdown(dati.secondi_rimanenti, dati.finestra_secondi);
+    }
+
+    function avviaCountdown(secondiRimanenti, finestraSecondi) {
+      if (countdownTimer) clearInterval(countdownTimer);
+      let restanti = secondiRimanenti;
+      const aggiorna = () => {
+        const percentuale = Math.max(0, Math.min(100, (restanti / finestraSecondi) * 100));
+        barraInternoEl.style.width = `${percentuale}%`;
+        restanti -= 1;
+        if (restanti < 0) {
+          clearInterval(countdownTimer);
+        }
+      };
+      aggiorna();
+      countdownTimer = setInterval(aggiorna, 1000);
+    }
+
+    function mostraSetup() {
+      areaCodice.hidden = true;
+      areaSetup.hidden = false;
+    }
+
+    salvaTokenBtn.addEventListener("click", () => {
+      const valore = estraiToken(inputToken.value);
+      if (!valore) return;
+      localStorage.setItem("sq_banco_token", valore);
+      aggiornaCodice();
+    });
+
+    aggiornaCodice();
+    refreshTimer = setInterval(aggiornaCodice, 15000);
+
+    window.addEventListener("beforeunload", () => {
+      if (refreshTimer) clearInterval(refreshTimer);
+      if (countdownTimer) clearInterval(countdownTimer);
+    });
+  </script>
+</body>
+</html>
