@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION public.verifica_codice_banco_interna(p_bar_id UUID, p
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   dispositivo RECORD;
@@ -92,8 +92,8 @@ BEGIN
   -- Tolleranza sulla finestra precedente per assorbire la latenza tra la lettura
   -- del codice al banco e l'invio dal cliente.
   RETURN codice_pulito IN (
-    LPAD((('x' || ENCODE(SUBSTRING(HMAC(dispositivo.bar_id::text || ':' || finestra_corrente::text, dispositivo.secret, 'sha256') FROM 1 FOR 4), 'hex'))::BIT(32)::BIGINT % 1000000)::TEXT, 6, '0'),
-    LPAD((('x' || ENCODE(SUBSTRING(HMAC(dispositivo.bar_id::text || ':' || (finestra_corrente - 1)::text, dispositivo.secret, 'sha256') FROM 1 FOR 4), 'hex'))::BIT(32)::BIGINT % 1000000)::TEXT, 6, '0')
+    LPAD((('x' || ENCODE(SUBSTRING(HMAC((dispositivo.bar_id::text || ':' || finestra_corrente::text)::bytea, dispositivo.secret, 'sha256') FROM 1 FOR 4), 'hex'))::BIT(32)::BIGINT % 1000000)::TEXT, 6, '0'),
+    LPAD((('x' || ENCODE(SUBSTRING(HMAC((dispositivo.bar_id::text || ':' || (finestra_corrente - 1)::text)::bytea, dispositivo.secret, 'sha256') FROM 1 FOR 4), 'hex'))::BIT(32)::BIGINT % 1000000)::TEXT, 6, '0')
   );
 END;
 $$;
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION public.richiedi_codice_banco_pilot(p_banco_token UUID
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   dispositivo RECORD;
@@ -131,7 +131,7 @@ BEGIN
   finestra_secondi := COALESCE(finestra_secondi, 90);
 
   finestra_corrente := FLOOR(EXTRACT(EPOCH FROM NOW()) / finestra_secondi)::BIGINT;
-  codice_attuale := LPAD((('x' || ENCODE(SUBSTRING(HMAC(dispositivo.bar_id::text || ':' || finestra_corrente::text, dispositivo.secret, 'sha256') FROM 1 FOR 4), 'hex'))::BIT(32)::BIGINT % 1000000)::TEXT, 6, '0');
+  codice_attuale := LPAD((('x' || ENCODE(SUBSTRING(HMAC((dispositivo.bar_id::text || ':' || finestra_corrente::text)::bytea, dispositivo.secret, 'sha256') FROM 1 FOR 4), 'hex'))::BIT(32)::BIGINT % 1000000)::TEXT, 6, '0');
   secondi_rimanenti := finestra_secondi - (EXTRACT(EPOCH FROM NOW())::BIGINT % finestra_secondi);
 
   RETURN jsonb_build_object(
