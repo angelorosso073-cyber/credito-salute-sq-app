@@ -136,7 +136,10 @@ const el = {
   erogazioneSilenziosiPrestazione: document.querySelector("#erogazioneSilenziosiPrestazione"),
   erogazioneSilenziosiStatus: document.querySelector("#erogazioneSilenziosiStatus"),
   revisioneManualeList: document.querySelector("#revisioneManualeList"),
+  revisioneManualeDetails: document.querySelector("#revisioneManualeDetails"),
+  richiesteCreditoDetails: document.querySelector("#richiesteCreditoDetails"),
   customerCreditRequests: document.querySelector("#customerCreditRequests"),
+  customerCreditRequestsDetails: document.querySelector("#customerCreditRequestsDetails"),
   creditRequestAlert: document.querySelector("#creditRequestAlert"),
   customerHistory: document.querySelector("#customerHistory"),
   customerRedemptionHistory: document.querySelector("#customerRedemptionHistory"),
@@ -733,6 +736,8 @@ function renderRevisioneManuale(righe) {
         </div>
       `).join("")
     : `<p class="form-status">Nessuno scontrino in revisione manuale.</p>`;
+
+  if (el.revisioneManualeDetails) el.revisioneManualeDetails.open = righe.length > 0;
 }
 
 async function handleRevisioneManualeClick(event) {
@@ -3007,8 +3012,12 @@ function renderCustomerCreditRequests(customerId) {
 
   if (!requests.length) {
     el.customerCreditRequests.innerHTML = "";
+    if (el.customerCreditRequestsDetails) el.customerCreditRequestsDetails.open = false;
     return;
   }
+
+  const haInAttesa = requests.some((request) => ["inviata", "in_contatto"].includes(request.status));
+  if (el.customerCreditRequestsDetails) el.customerCreditRequestsDetails.open = haInAttesa;
 
   el.customerCreditRequests.innerHTML = `
     <div class="history-title">Richieste utilizzo credito</div>
@@ -3419,8 +3428,11 @@ function renderCreditRequestQueue() {
 
   if (!state.creditRequests.length) {
     el.creditRequestQueue.innerHTML = `<div class="empty">Nessuna richiesta utilizzo credito da gestire.</div>`;
+    if (el.richiesteCreditoDetails) el.richiesteCreditoDetails.open = false;
     return;
   }
+
+  if (el.richiesteCreditoDetails) el.richiesteCreditoDetails.open = true;
 
   el.creditRequestQueue.innerHTML = state.creditRequests.slice(0, 20).map((request) => {
     const customer = getCustomer(request.customerId);

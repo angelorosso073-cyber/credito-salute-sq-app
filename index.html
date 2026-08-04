@@ -188,6 +188,17 @@
                   <strong>0,00 euro SQ</strong>
                 </article>
               </div>
+              <div class="credito-sospeso-area full" id="creditoSospesoArea" hidden>
+                <p class="notice full" data-status="warning">
+                  Credito in sospeso: <strong id="creditoSospesoScadenza"></strong>. Passa dal bar per attivarlo.
+                </p>
+                <label>
+                  Codice del banco per attivare
+                  <input inputmode="numeric" pattern="[0-9]{6}" maxlength="6" id="attivaCodiceInput" placeholder="000000">
+                </label>
+                <button type="button" class="secondary" id="attivaCodiceBtn">Attiva ora</button>
+                <p class="form-status" id="attivaCodiceStatus"></p>
+              </div>
               <div id="creditRequestArea" class="credit-request-area"></div>
               <form id="creditRequestForm" class="form credit-request-form" hidden>
                 <label>
@@ -310,17 +321,23 @@
                   <button class="primary full" type="submit">Invia richiesta di ammissione</button>
                 </form>
               </details>
-              <div class="mini-list" id="customerCreditRequests"></div>
-              <div class="mini-list" id="customerHistory"></div>
-              <div class="mini-list" id="customerRedemptionHistory"></div>
+              <details class="signup-box" id="customerCreditRequestsDetails">
+                <summary>Le tue richieste di utilizzo credito</summary>
+                <div class="mini-list" id="customerCreditRequests"></div>
+              </details>
+              <details class="signup-box">
+                <summary>Storico scontrini</summary>
+                <div class="mini-list" id="customerHistory"></div>
+              </details>
+              <details class="signup-box">
+                <summary>Storico prestazioni utilizzate</summary>
+                <div class="mini-list" id="customerRedemptionHistory"></div>
+              </details>
             </section>
           </div>
 
-          <section class="panel">
-            <div class="section-heading">
-              <p class="eyebrow">Scontrino</p>
-              <h2>Carica una consumazione</h2>
-            </div>
+          <details class="signup-box signup-box--panel" id="caricaConsumazioneDetails">
+            <summary>Carica una consumazione</summary>
             <form id="receiptForm" class="form receipt-form" novalidate>
               <label>
                 Cliente
@@ -407,18 +424,7 @@
                 Non hai il codice sottomano? Puoi comunque inviare: il credito resta visibile ma non spendibile finche' non torni al bar per attivarlo.
               </p>
             </div>
-            <div class="credito-sospeso-area full" id="creditoSospesoArea" hidden>
-              <p class="notice full" data-status="warning">
-                Credito in sospeso: <strong id="creditoSospesoScadenza"></strong>. Passa dal bar per attivarlo.
-              </p>
-              <label>
-                Codice del banco per attivare
-                <input inputmode="numeric" pattern="[0-9]{6}" maxlength="6" id="attivaCodiceInput" placeholder="000000">
-              </label>
-              <button type="button" class="secondary" id="attivaCodiceBtn">Attiva ora</button>
-              <p class="form-status" id="attivaCodiceStatus"></p>
-            </div>
-          </section>
+          </details>
         </section>
 
         <section class="tab-panel" id="bar_report" aria-labelledby="tab-bar-report">
@@ -432,10 +438,10 @@
             </div>
             <p class="form-status" id="barReportStatus">Accedi come titolare bar per caricare il report.</p>
             <div class="metric-grid metric-grid--bar" id="barReportMetrics"></div>
-            <div class="section-heading section-heading--compact">
-              <h2>Ultimi scontrini del bar</h2>
-            </div>
-            <div class="bar-receipt-list" id="barReportReceipts"></div>
+            <details class="signup-box">
+              <summary>Ultimi scontrini del bar</summary>
+              <div class="bar-receipt-list" id="barReportReceipts"></div>
+            </details>
             <div class="section-heading section-heading--compact">
               <h2>Carica scontrino (cassiere)</h2>
             </div>
@@ -514,21 +520,15 @@
 
         <section class="tab-panel" id="salute" aria-labelledby="tab-salute">
           <div class="request-alert" id="creditRequestAlert"></div>
-          <section class="panel">
-            <div class="section-heading">
-              <p class="eyebrow">Richieste clienti</p>
-              <h2>Richieste utilizzo credito</h2>
-            </div>
+          <details class="signup-box signup-box--panel" id="richiesteCreditoDetails">
+            <summary>Richieste utilizzo credito</summary>
             <div class="notice">
               Le richieste non sono appuntamenti confermati. Salute Quotidiana ricontatta il cliente, verifica disponibilita' e decide come procedere.
             </div>
             <div class="mini-list" id="creditRequestQueue"></div>
-          </section>
-          <section class="panel">
-            <div class="section-heading">
-              <p class="eyebrow">Salute Quotidiana</p>
-              <h2>Registra prestazione</h2>
-            </div>
+          </details>
+          <details class="signup-box signup-box--panel">
+            <summary>Registra prestazione</summary>
             <form id="redemptionForm" class="form">
               <label>
                 Cliente
@@ -567,12 +567,9 @@
               <button class="secondary" type="button" id="copyBarPaymentBtn">Copia messaggio</button>
             </div>
             <div class="mini-list" id="redemptionHistory"></div>
-          </section>
-          <section class="panel">
-            <div class="section-heading">
-              <p class="eyebrow">Fondo condiviso</p>
-              <h2>Lista dei Silenziosi</h2>
-            </div>
+          </details>
+          <details class="signup-box signup-box--panel">
+            <summary>Lista dei Silenziosi</summary>
             <div class="notice">
               Fondo alimentato da donazioni anonime, ripartito automaticamente tra i beneficiari ammessi
               in proporzione al loro punteggio di bisogno. Nessun donatore e' mai indicato per nome.
@@ -597,18 +594,15 @@
               <p class="form-status full" id="erogazioneSilenziosiStatus">Seleziona beneficiario e prestazione: la quota disponibile copre fino al costo pieno.</p>
               <button class="primary full" type="submit">Eroga da fondo</button>
             </form>
-          </section>
-          <section class="panel">
-            <div class="section-heading">
-              <p class="eyebrow">Controllo SQ</p>
-              <h2>Scontrini in revisione manuale</h2>
-            </div>
+          </details>
+          <details class="signup-box signup-box--panel" id="revisioneManualeDetails">
+            <summary>Scontrini in revisione manuale</summary>
             <div class="notice">
               Scontrini con importo oltre la soglia configurata per l'esercizio: non sono rifiutati automaticamente,
               vanno confermati o rifiutati a mano.
             </div>
             <div class="mini-list" id="revisioneManualeList"></div>
-          </section>
+          </details>
         </section>
 
         <section class="tab-panel" id="report" aria-labelledby="tab-report">

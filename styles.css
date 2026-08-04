@@ -12,6 +12,12 @@
   --blue: #245a86;
   --amber: #946000;
   --red: #a93232;
+  --orange: #e8720c;
+  --orange-dark: #b85600;
+  --grad-strong: linear-gradient(135deg, var(--green) 0%, var(--orange) 100%);
+  --grad-strong-hover: linear-gradient(135deg, var(--green-dark) 0%, var(--orange-dark) 100%);
+  --grad-soft: linear-gradient(135deg, rgba(29, 106, 181, 0.14) 0%, rgba(232, 114, 12, 0.16) 100%);
+  --grad-soft-hover: linear-gradient(135deg, rgba(29, 106, 181, 0.24) 0%, rgba(232, 114, 12, 0.26) 100%);
   --shadow: 0 4px 8px rgba(23, 35, 29, 0.07);
 }
 
@@ -138,18 +144,38 @@ h2 {
 .tab-button,
 button {
   min-height: 42px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid transparent;
   border-radius: 6px;
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--grad-strong);
+  color: #fff;
   cursor: pointer;
   font-weight: 700;
+  transition: background 0.15s ease;
+}
+
+.tab-button:hover,
+button:hover {
+  background: var(--grad-strong-hover);
+}
+
+.tab-button {
+  background: var(--grad-soft);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.tab-button:hover {
+  background: var(--grad-soft-hover);
 }
 
 .tab-button.is-active {
-  border-color: var(--green);
-  background: var(--green);
+  border-color: transparent;
+  background: var(--grad-strong);
   color: #fff;
+}
+
+.tab-button.is-active:hover {
+  background: var(--grad-strong-hover);
 }
 
 .app-hidden {
@@ -214,10 +240,71 @@ button {
 }
 
 .signup-box summary {
-  color: var(--green-dark);
+  list-style: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--grad-strong);
+  color: #fff;
   font-size: 14px;
   font-weight: 800;
+  transition: background 0.15s ease;
+}
+
+.signup-box summary::-webkit-details-marker {
+  display: none;
+}
+
+.signup-box summary::after {
+  content: "\25BE";
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+
+.signup-box summary:hover {
+  background: var(--grad-strong-hover);
+}
+
+.signup-box[open] > summary {
+  background: linear-gradient(135deg, var(--orange) 0%, var(--green) 100%);
+}
+
+.signup-box[open] > summary:hover {
+  background: linear-gradient(135deg, var(--orange-dark) 0%, var(--green-dark) 100%);
+}
+
+.signup-box[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.signup-box--panel {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.signup-box--panel + .panel,
+.panel + .signup-box--panel,
+.signup-box--panel + .signup-box--panel {
+  margin-top: 18px;
+}
+
+.signup-box--panel summary {
+  font-size: 16px;
+  padding: 12px 18px;
+}
+
+.signup-box--panel[open] summary {
+  margin-bottom: 16px;
 }
 
 .signup-form {
@@ -296,23 +383,34 @@ button:focus {
 }
 
 .primary {
-  border-color: var(--green);
-  background: var(--green);
+  border-color: transparent;
+  background: var(--grad-strong);
   color: #fff;
 }
 
 .primary:hover {
-  background: var(--green-dark);
+  background: var(--grad-strong-hover);
 }
 
 .secondary {
   padding: 0 12px;
-  background: var(--surface-soft);
+  background: var(--grad-soft);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.secondary:hover {
+  background: var(--grad-soft-hover);
 }
 
 .danger {
+  background: var(--surface);
   border-color: rgba(169, 50, 50, 0.35);
   color: var(--red);
+}
+
+.danger:hover {
+  background: rgba(169, 50, 50, 0.1);
 }
 
 .notice {
@@ -1092,10 +1190,10 @@ textarea {
   flex: 1;
   min-width: 90px;
   padding: 10px 12px;
-  border: 2px solid #b8c8f0;
+  border: 2px solid var(--line-strong);
   border-radius: 8px;
-  background: #fff;
-  color: #2d3a6b;
+  background: var(--grad-soft);
+  color: var(--ink);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -1103,7 +1201,8 @@ textarea {
 }
 
 .cassiere-operatore-btn:hover {
-  background: #2d3a6b;
+  background: var(--grad-strong);
+  border-color: transparent;
   color: #fff;
   border-color: #2d3a6b;
 }
