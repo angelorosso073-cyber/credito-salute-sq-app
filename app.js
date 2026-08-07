@@ -3836,13 +3836,14 @@ function extractDocumentNumber(text) {
 
 function extractMatricolaRt(text) {
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const labelPattern = /\b(matricola|matr\.?|mf)\b/i;
+  const labelPattern = /\b(matricola|matr\.?|mf|rt)\b/i;
 
   for (const line of lines) {
     if (!labelPattern.test(line)) continue;
-    const value = line.match(/(?:matricola|matr\.?|mf)\D{0,8}([a-z0-9]{5,16})/i);
-    if (value) {
-      return value[1].toUpperCase();
+    const dopoEtichetta = line.replace(/.*?\b(?:matricola|matr\.?|mf|rt)\b\s*[:\-]?\s*/i, "");
+    const pulito = dopoEtichetta.replace(/[^a-z0-9]/gi, "").toUpperCase();
+    if (pulito.length >= 6 && pulito.length <= 16) {
+      return pulito;
     }
   }
 
