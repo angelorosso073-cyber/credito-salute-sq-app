@@ -106,7 +106,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="./qrcode-generator.min.js"></script>
   <script>
     const SUPABASE_URL = window.__SQ_BANCO_SUPABASE_URL__ || "https://qenfaqdtzmsestpdpibo.supabase.co";
     const SUPABASE_ANON_KEY = window.__SQ_BANCO_SUPABASE_ANON_KEY__ || "sb_publishable_2r0GmAxXUtbA9yzkvaZXTw_nPx_KKxd";
@@ -143,6 +143,30 @@
       return pulito;
     }
 
+    function disegnaQr(canvas, testo, dimensione) {
+      const qr = qrcode(0, "M");
+      qr.addData(String(testo));
+      qr.make();
+      const moduli = qr.getModuleCount();
+      const margine = 2;
+      const cella = dimensione / (moduli + margine * 2);
+      canvas.width = dimensione;
+      canvas.height = dimensione;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, dimensione, dimensione);
+      ctx.fillStyle = "#000000";
+      for (let riga = 0; riga < moduli; riga++) {
+        for (let colonna = 0; colonna < moduli; colonna++) {
+          if (qr.isDark(riga, colonna)) {
+            const x = (colonna + margine) * cella;
+            const y = (riga + margine) * cella;
+            ctx.fillRect(x, y, Math.ceil(cella), Math.ceil(cella));
+          }
+        }
+      }
+    }
+
     async function chiamaRpc(nome, corpo) {
       const risposta = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${nome}`, {
         method: "POST",
@@ -177,7 +201,7 @@
       statoEl.textContent = "Codice attivo.";
 
       try {
-        await QRCode.toCanvas(qrCanvas, dati.codice, { width: 220, margin: 1 });
+        disegnaQr(qrCanvas, dati.codice, 220);
       } catch (err) {
         console.error("Errore disegno QR banco:", err);
       }
