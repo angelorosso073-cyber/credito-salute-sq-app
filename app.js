@@ -2186,6 +2186,7 @@ function extractReceiptFields(text) {
     receiptDate: extractReceiptDate(normalized),
     receiptTime: extractReceiptTime(normalized),
     documentNumber: extractDocumentNumber(normalized),
+    matricolaRt: extractMatricolaRt(normalized),
     amount: extractReceiptAmount(normalized)
   };
 }
@@ -2203,6 +2204,10 @@ function applyOcrFields(fields) {
     el.receiptForm.documentNumber.value = fields.documentNumber;
   }
 
+  if (fields.matricolaRt) {
+    el.receiptForm.matricolaRt.value = fields.matricolaRt;
+  }
+
   if (fields.amount) {
     el.receiptForm.amount.value = fields.amount.toFixed(2);
     updateReceiptCalculation();
@@ -2214,6 +2219,7 @@ function renderOcrResult(text, fields, confidence) {
     fields.receiptDate ? "data" : "",
     fields.receiptTime ? "ora" : "",
     fields.documentNumber ? "documento" : "",
+    fields.matricolaRt ? "matricola RT" : "",
     fields.amount ? "importo" : ""
   ].filter(Boolean);
 
@@ -2248,6 +2254,7 @@ function createOcrSnapshot(text, fields, confidence) {
       receiptDate: fields.receiptDate || "",
       receiptTime: fields.receiptTime || "",
       documentNumber: fields.documentNumber || "",
+      matricolaRt: fields.matricolaRt || "",
       amount: fields.amount || 0
     },
     confidence: normalizeOcrConfidence(confidence),
@@ -3639,6 +3646,7 @@ function ocrSummaryMarkup(ocr) {
         <span>Data OCR: <strong>${escapeHtml(fields.receiptDate || "-")}</strong></span>
         <span>Ora OCR: <strong>${escapeHtml(fields.receiptTime || "-")}</strong></span>
         <span>Documento OCR: <strong>${escapeHtml(fields.documentNumber || "-")}</strong></span>
+        <span>Matricola RT OCR: <strong>${escapeHtml(fields.matricolaRt || "-")}</strong></span>
         <span>Importo OCR: <strong>${fields.amount ? `${formatMoney(fields.amount)} euro` : "-"}</strong></span>
       </div>
       <pre>${escapeHtml(ocr.text)}</pre>
@@ -3701,6 +3709,7 @@ function exportCsv() {
       "ocr_data",
       "ocr_ora",
       "ocr_documento",
+      "ocr_matricola_rt",
       "ocr_importo",
       "ocr_testo"
     ]
@@ -3724,6 +3733,7 @@ function exportCsv() {
       ocrFields.receiptDate || "",
       ocrFields.receiptTime || "",
       ocrFields.documentNumber || "",
+      ocrFields.matricolaRt || "",
       ocrFields.amount || "",
       ocr.text || ""
     ]);
@@ -3819,6 +3829,21 @@ function extractDocumentNumber(text) {
   const commercialDocument = text.match(/documento\s+commerciale[\s\S]{0,80}?\b(?:n\.?|numero)?\D{0,12}([a-z0-9][a-z0-9./-]{1,20})/i);
   if (commercialDocument && hasDigit(commercialDocument[1])) {
     return cleanDocumentNumber(commercialDocument[1]);
+  }
+
+  return "";
+}
+
+function extractMatricolaRt(text) {
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  const labelPattern = /\b(matricola|matr\.?|mf)\b/i;
+
+  for (const line of lines) {
+    if (!labelPattern.test(line)) continue;
+    const value = line.match(/(?:matricola|matr\.?|mf)\D{0,8}([a-z0-9]{5,16})/i);
+    if (value) {
+      return value[1].toUpperCase();
+    }
   }
 
   return "";
