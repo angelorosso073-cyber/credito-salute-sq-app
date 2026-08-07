@@ -465,7 +465,7 @@ async function loadPilotReceiptsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("scontrini_app_pilot")
-    .select("id,cliente_id,testo_ocr,data_scontrino,ora_scontrino,numero_documento,importo_dichiarato,importo_ocr,credito_generato,stato,avviso_duplicato,motivo_rifiuto,motivo_sospensione,sospeso_scaduto_il,created_at")
+    .select("id,cliente_id,testo_ocr,data_scontrino,ora_scontrino,numero_documento,importo_dichiarato,importo_ocr,credito_generato,stato,avviso_duplicato,motivo_rifiuto,motivo_sospensione,sospeso_scaduto_il,foto_path,created_at")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -688,6 +688,7 @@ function mapSupabaseReceipt(receipt) {
     status: mapSupabaseReceiptStatus(receipt.stato),
     motivoSospensione: receipt.motivo_sospensione || null,
     sospesoScadutoIl: receipt.sospeso_scaduto_il || null,
+    fotoPath: receipt.foto_path || null,
     note: receipt.motivo_rifiuto || (receipt.avviso_duplicato ? "Possibile duplicato." : ""),
     ocr: text ? createOcrSnapshot(text, fields, 0) : null,
     imageData: "",
@@ -711,7 +712,7 @@ async function loadRevisioneManuale() {
 
   const { data, error } = await supabaseClient
     .from("scontrini_revisione_manuale_pilot")
-    .select("id,cliente_id,codice_cliente,nome,cognome,data_scontrino,numero_documento,importo_dichiarato,credito_generato,created_at");
+    .select("id,cliente_id,codice_cliente,nome,cognome,data_scontrino,numero_documento,importo_dichiarato,credito_generato,foto_path,created_at");
 
   if (error) {
     console.error("Errore caricamento revisione manuale:", error);
@@ -730,6 +731,7 @@ function renderRevisioneManuale(righe) {
           <span>${escapeHtml(r.nome)} ${escapeHtml(r.cognome)} (${escapeHtml(r.codice_cliente)}) — ${r.data_scontrino} — doc. ${escapeHtml(r.numero_documento || "-")}</span>
           <strong>${formatMoney(r.importo_dichiarato)} euro — credito ${formatMoney(r.credito_generato)} euro SQ</strong>
           <div class="mini-list__actions">
+            ${r.foto_path ? `<button type="button" class="secondary small" onclick="vediFotoScontrino('${r.foto_path}')">Vedi foto</button>` : ""}
             <button type="button" class="secondary small" data-revisione-conferma="${r.id}" data-revisione-importo="${r.importo_dichiarato}" data-revisione-credito="${r.credito_generato}">Conferma</button>
             <button type="button" class="secondary small" data-revisione-rifiuta="${r.id}">Rifiuta</button>
           </div>
@@ -1584,6 +1586,9 @@ async function submitReceipt(event) {
   receipt.status = "pending";
   receipt.note = validation.message;
 
+  setReceiptSubmitStatus("Salvataggio foto per controllo in corso.", "loading");
+  receipt.fotoPath = await uploadFotoScontrino(selectedCustomerId, receipt.id, imageFile);
+
   setReceiptSubmitStatus("Invio scontrino a Supabase in corso.", "loading");
   const supabaseResult = await saveReceiptToSupabase(receipt, duplicate, validation);
   if (!supabaseResult.ok) {
@@ -1861,6 +1866,43 @@ function validateReceiptAutomatically(receipt, duplicate) {
   };
 }
 
+async function uploadFotoScontrino(customerId, receiptId, file) {
+  if (!supabaseClient || !file || !customerId || !receiptId) return null;
+
+  const estensione = (file.type && file.type.split("/")[1]) || "jpg";
+  const percorso = `${customerId}/${receiptId}.${estensione}`;
+
+  const { error } = await supabaseClient.storage
+    .from("foto-scontrini")
+    .upload(percorso, file, { contentType: file.type || "image/jpeg", upsert: false });
+
+  if (error) {
+    console.error("Errore salvataggio foto scontrino:", error);
+    return null;
+  }
+
+  return percorso;
+}
+
+async function vediFotoScontrino(fotoPath) {
+  if (!fotoPath || !supabaseClient) {
+    showToast("Foto non disponibile per questo scontrino.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.storage
+    .from("foto-scontrini")
+    .createSignedUrl(fotoPath, 300);
+
+  if (error || !data?.signedUrl) {
+    console.error("Errore apertura foto scontrino:", error);
+    showToast("Impossibile aprire la foto.");
+    return;
+  }
+
+  window.open(data.signedUrl, "_blank");
+}
+
 async function saveReceiptToSupabase(receipt, duplicate, validation) {
   if (!supabaseClient) {
     return { ok: true };
@@ -1887,7 +1929,8 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     p_motivo_controllo: validation.message,
     p_operatore_label: receipt.operatorLabel || null,
     p_matricola_rt: receipt.matricolaRt,
-    p_codice_banco: receipt.codiceBanco || null
+    p_codice_banco: receipt.codiceBanco || null,
+    p_foto_path: receipt.fotoPath || null
   });
 
   if (error) {
@@ -3137,7 +3180,9 @@ function renderReceiptList() {
     const customer = getCustomer(receipt.customerId);
     const imageMarkup = receipt.imageData
       ? `<img src="${receipt.imageData}" alt="Foto scontrino">`
-      : `<div class="receipt-image-placeholder">Foto non salvata in questa versione del prototipo.</div>`;
+      : receipt.fotoPath
+        ? `<button type="button" class="secondary" onclick="vediFotoScontrino('${receipt.fotoPath}')">Vedi foto scontrino</button>`
+        : `<div class="receipt-image-placeholder">Nessuna foto salvata per questo scontrino.</div>`;
 
     return `
       <article class="receipt-card" data-id="${receipt.id}">
