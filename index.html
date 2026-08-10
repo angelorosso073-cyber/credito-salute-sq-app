@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Salute SQ">
     <link rel="apple-touch-icon" href="Logo.png">
-    <link rel="stylesheet" href="styles.css?v=56">
+    <link rel="stylesheet" href="styles.css?v=57">
   </head>
   <body>
     <div id="splash" aria-hidden="true">
@@ -357,9 +357,10 @@
               </label>
               <label>
                 Matricola registratore telematico (RT)
-                <input required name="matricolaRt" placeholder="Es. 12345678" autocomplete="off">
+                <input required name="matricolaRt" placeholder="Es. 2CISI000611" autocomplete="off">
+                <select id="matricolaRtSelect" hidden></select>
               </label>
-              <p class="notice full">
+              <p class="notice full" id="matricolaRtNotice">
                 La trovi stampata sullo scontrino, di solito in basso, vicino alla dicitura "MF" o "matricola".
               </p>
               <label>
@@ -653,6 +654,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=55"></script>
+    <script src="app.js?v=56"></script>
   </body>
 </html>

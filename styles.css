@@ -356,6 +356,15 @@ textarea {
   color: var(--ink);
 }
 
+/* Campo compilato dal sistema e non modificabile (es. matricola del registratore
+   letta dal registro dell'esercizio): deve leggersi come un dato, non come una
+   casella da riempire. */
+input[readonly] {
+  background: #f4f7fb;
+  color: #55606b;
+  cursor: default;
+}
+
 input:focus,
 select:focus,
 textarea:focus,

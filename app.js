@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v54";
+const APP_VERSION = "v55";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -89,6 +89,7 @@ let state = loadState();
 let currentOcrResult = null;
 let supabaseClient = null;
 let activeBar = null;
+let registratoriBar = [];
 let cameraStream = null;
 let cameraReceiptFile = null;
 let authSession = null;
@@ -115,6 +116,8 @@ const el = {
   authRole: document.querySelector("#authRole"),
   customerForm: document.querySelector("#customerForm"),
   receiptForm: document.querySelector("#receiptForm"),
+  matricolaRtSelect: document.querySelector("#matricolaRtSelect"),
+  matricolaRtNotice: document.querySelector("#matricolaRtNotice"),
   redemptionForm: document.querySelector("#redemptionForm"),
   customerSelect: document.querySelector("#customerSelect"),
   receiptCustomerSelect: document.querySelector("#receiptCustomerSelect"),
@@ -422,6 +425,78 @@ async function checkSupabaseDatabase() {
   setSupabaseStatus(`Database collegato: ${barName} (${APP_VERSION})`, "online");
 }
 
+// La matricola del registratore telematico e' una costante dell'esercizio: e' gia'
+// registrata in registratori_telematici e non cambia mai da uno scontrino all'altro.
+// Chiederla al cliente (che dovrebbe trascriverla a mano da caratteri minuscoli in
+// fondo alla carta, spesso illeggibili all'OCR) e' una barriera senza contropartita.
+// La leggiamo dal registro e compiliamo noi.
+async function loadRegistratoriBar() {
+  if (!supabaseClient || !activeBar?.id) return;
+
+  const { data, error } = await supabaseClient
+    .from("registratori_telematici")
+    .select("id,matricola")
+    .eq("bar_id", activeBar.id)
+    .eq("attivo", true)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento registratori telematici:", error);
+    registratoriBar = [];
+  } else {
+    registratoriBar = data || [];
+  }
+
+  applyRegistratoriToReceiptForm();
+}
+
+function applyRegistratoriToReceiptForm() {
+  const campo = el.receiptForm?.matricolaRt;
+  const menu = el.matricolaRtSelect;
+  if (!campo || !menu) return;
+
+  // Nessun registratore noto: si torna al comportamento manuale, cosi' un esercizio
+  // non ancora censito non blocca i suoi clienti.
+  if (!registratoriBar.length) {
+    campo.hidden = false;
+    campo.readOnly = false;
+    menu.hidden = true;
+    menu.innerHTML = "";
+    setMatricolaNotice("La trovi stampata sullo scontrino, di solito in basso, vicino alla dicitura \"MF\" o \"matricola\".");
+    return;
+  }
+
+  if (registratoriBar.length === 1) {
+    campo.hidden = false;
+    campo.readOnly = true;
+    campo.value = registratoriBar[0].matricola;
+    menu.hidden = true;
+    menu.innerHTML = "";
+    setMatricolaNotice(`Compilata in automatico: e' il registratore di cassa dell'esercizio (${registratoriBar[0].matricola}). Non devi cercarla sullo scontrino.`);
+    return;
+  }
+
+  // Piu' registratori attivi (esercizio con due casse): sceglie l'operatore.
+  menu.innerHTML = registratoriBar
+    .map((rt) => `<option value="${escapeHtml(rt.matricola)}">${escapeHtml(rt.matricola)}</option>`)
+    .join("");
+  menu.hidden = false;
+  campo.hidden = true;
+  campo.readOnly = true;
+  campo.value = registratoriBar[0].matricola;
+  setMatricolaNotice("Questo esercizio ha piu' registratori di cassa: scegli quello che ha emesso lo scontrino.");
+}
+
+function setMatricolaNotice(testo) {
+  if (el.matricolaRtNotice) {
+    el.matricolaRtNotice.textContent = testo;
+  }
+}
+
+function matricolaCompilataDalRegistro() {
+  return registratoriBar.length > 0;
+}
+
 async function loadPilotCustomersFromSupabase() {
   if (!supabaseClient) return;
 
@@ -491,6 +566,8 @@ async function refreshPilotDataFromSupabase() {
   render();
   suppressLocalPersistence = true;
   try {
+    await loadRegistratoriBar();
+
     if (authRole === "bar") {
       await loadBarReportFromSupabase();
       return;
@@ -1028,6 +1105,12 @@ function wireEvents() {
 
   el.customerForm.addEventListener("submit", handleCustomerSubmit);
   el.receiptForm.addEventListener("submit", handleReceiptSubmit);
+  if (el.matricolaRtSelect) {
+    // Il campo di testo resta l'unico portatore del valore inviato: il menu lo pilota.
+    el.matricolaRtSelect.addEventListener("change", (event) => {
+      el.receiptForm.matricolaRt.value = event.target.value;
+    });
+  }
   el.redemptionForm.addEventListener("submit", handleRedemptionSubmit);
   el.creditRequestForm.addEventListener("submit", handleCreditRequestSubmit);
 
@@ -1605,6 +1688,8 @@ async function submitReceipt(event) {
   receiptForm.reset();
   cameraReceiptFile = null;
   setTodayDefaults();
+  // reset() svuota anche la matricola compilata dal registro: la rimettiamo.
+  applyRegistratoriToReceiptForm();
   resetOcrBox();
   updateReceiptCalculation();
   render();
@@ -1849,6 +1934,16 @@ function validateReceiptAutomatically(receipt, duplicate) {
   const hasBarKeyword = BAR_VALIDATION_KEYWORDS.some((keyword) => ocrText.includes(keyword));
   if (!hasBarKeyword) {
     issues.push("esercizio non riconosciuto: scontrino non proviene da esercizio aderente al progetto");
+  }
+
+  // Controllo incrociato: quando la foto e' abbastanza nitida da far leggere la matricola,
+  // deve coincidere con quella del registratore dell'esercizio. Se differisce, lo scontrino
+  // arriva probabilmente da un altro negozio. Non blocchiamo il cliente — la foto sbaglia
+  // spesso — ma lo segnaliamo a Salute Quotidiana per la revisione.
+  const matricolaLetta = cleanText(receipt.ocr?.fields?.matricolaRt || "").toUpperCase();
+  const matricolaInviata = cleanText(receipt.matricolaRt || "").toUpperCase();
+  if (matricolaLetta && matricolaInviata && matricolaLetta !== matricolaInviata) {
+    issues.push(`matricola letta dalla foto (${matricolaLetta}) diversa da quella del registratore dell'esercizio (${matricolaInviata})`);
   }
 
   const approved = issues.length === 0;
@@ -2204,7 +2299,10 @@ function applyOcrFields(fields) {
     el.receiptForm.documentNumber.value = fields.documentNumber;
   }
 
-  if (fields.matricolaRt) {
+  // Se il registro dell'esercizio ha gia' compilato il campo, l'OCR non lo sovrascrive:
+  // il registro e' la fonte affidabile, la foto no. Il valore letto dalla foto resta
+  // comunque in currentOcrResult e serve da controllo incrociato in fase di validazione.
+  if (fields.matricolaRt && !matricolaCompilataDalRegistro()) {
     el.receiptForm.matricolaRt.value = fields.matricolaRt;
   }
 
@@ -3834,18 +3932,51 @@ function extractDocumentNumber(text) {
   return "";
 }
 
-function extractMatricolaRt(text) {
-  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const labelPattern = /\b(matricola|matr\.?|mf|rt)\b/i;
+// Etichetta della matricola. Il confine e' richiesto solo a sinistra: cosi'
+// "MF96ABC123456" (etichetta attaccata al valore) viene riconosciuto, mentre
+// "importo" e "partita" non attivano il match sul loro "rt". Tollera le storpiature
+// tipiche dell'OCR sulla parola "matricola" (0 al posto di O, 1 o l al posto di i).
+const ETICHETTA_MATRICOLA = /(?:^|[^a-z0-9])(?:matr[i1l]c[o0]la|matr\.?|mf|rt)[^a-z0-9]*/i;
+// Forma tipica di una matricola RT: cifre + lettere + cifre, senza separatori
+// (es. 2CISI000611 del Bar pilota, 96ABC123456).
+const FORMATO_MATRICOLA = /(?:^|[^a-z0-9])(\d{1,2}[a-z]{3,4}\d{5,6})(?![a-z0-9])/i;
 
-  for (const line of lines) {
-    if (!labelPattern.test(line)) continue;
-    const dopoEtichetta = line.replace(/.*?\b(?:matricola|matr\.?|mf|rt)\b\s*[:\-]?\s*/i, "");
-    const pulito = dopoEtichetta.replace(/[^a-z0-9]/gi, "").toUpperCase();
-    if (pulito.length >= 6 && pulito.length <= 16) {
-      return pulito;
+function candidatoMatricolaValido(token) {
+  if (token.length < 6 || token.length > 16) return false;
+  // Una matricola contiene sempre cifre: scarta parole come ATTIVO o FISCALE,
+  // che altrimenti finirebbero nel campo prese da righe di intestazione.
+  return /\d/.test(token);
+}
+
+function primoCandidatoMatricola(testo) {
+  const tokens = String(testo || "").split(/[^a-z0-9]+/i).filter(Boolean);
+  for (const token of tokens) {
+    const pulito = token.toUpperCase();
+    if (candidatoMatricolaValido(pulito)) return pulito;
+  }
+  return "";
+}
+
+function extractMatricolaRt(text) {
+  const lines = String(text || "").split("\n").map((line) => line.trim()).filter(Boolean);
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const match = lines[i].match(ETICHETTA_MATRICOLA);
+    if (!match) continue;
+
+    const dopoEtichetta = lines[i].slice(match.index + match[0].length);
+    const sullaRiga = primoCandidatoMatricola(dopoEtichetta);
+    if (sullaRiga) return sullaRiga;
+
+    // Molte stampanti mandano a capo il valore dopo l'etichetta.
+    if (i + 1 < lines.length) {
+      const sottoEtichetta = primoCandidatoMatricola(lines[i + 1]);
+      if (sottoEtichetta) return sottoEtichetta;
     }
   }
+
+  const perFormato = String(text || "").match(FORMATO_MATRICOLA);
+  if (perFormato) return perFormato[1].toUpperCase();
 
   return "";
 }
