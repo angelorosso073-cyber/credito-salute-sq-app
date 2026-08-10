@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v56";
+const APP_VERSION = "v57";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -95,6 +95,10 @@ let registratoriBar = [];
 // del cliente" — solo "l'esercizio di QUESTO scontrino", scelto ogni volta nel modulo.
 let eserciziAttivi = [];
 let esercizioSelezionatoId = null;
+// Bar risolto server-side da operatori_bar per il titolare loggato (report_bar_corrente_pilot).
+// A differenza di activeBar (primo bar della tabella, indovinato) e' sempre il bar giusto
+// per QUESTO titolare, anche quando ce ne sono altri con altri titolari.
+let titolareBarId = null;
 let cameraStream = null;
 let cameraReceiptFile = null;
 let authSession = null;
@@ -682,6 +686,8 @@ async function loadBarReportFromSupabase() {
   }
 
   state.barReport = normalizeBarReport(data);
+  const report = Array.isArray(data) ? data[0] : data;
+  titolareBarId = report?.bar_id || null;
   setBarReportStatus("Report bar aggiornato.", "success");
   saveState();
   render();
@@ -4441,6 +4447,9 @@ async function handleCassiereReceiptSubmit(event) {
     id: crypto.randomUUID(),
     customerId: customer.id,
     customerCode: customer.code,
+    // Il bar del titolare loggato, risolto da operatori_bar (vedi titolareBarId) —
+    // non il bar globale indovinato: con piu' esercizi ognuno ha il proprio titolare.
+    barId: titolareBarId || activeBar?.id || null,
     receiptDate,
     receiptTime: new Date().toTimeString().slice(0, 5),
     amount,
