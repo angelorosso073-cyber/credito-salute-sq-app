@@ -343,6 +343,10 @@
                 Cliente
                 <select required name="customerId" id="receiptCustomerSelect"></select>
               </label>
+              <label class="full" id="esercizioSelectLabel" hidden>
+                Da quale esercizio è questo scontrino?
+                <select required name="esercizioId" id="esercizioSelect"></select>
+              </label>
               <label>
                 Data scontrino
                 <input required type="date" name="receiptDate">
@@ -654,6 +658,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=56"></script>
+    <script src="app.js?v=57"></script>
   </body>
 </html>

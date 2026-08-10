@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v55";
+const APP_VERSION = "v56";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -90,6 +90,11 @@ let currentOcrResult = null;
 let supabaseClient = null;
 let activeBar = null;
 let registratoriBar = [];
+// Il credito SQ e' unico e vale in tutti gli esercizi aderenti: un cliente puo' caricare
+// scontrini dal bar un giorno e dalla farmacia il giorno dopo. Non esiste quindi "il bar
+// del cliente" — solo "l'esercizio di QUESTO scontrino", scelto ogni volta nel modulo.
+let eserciziAttivi = [];
+let esercizioSelezionatoId = null;
 let cameraStream = null;
 let cameraReceiptFile = null;
 let authSession = null;
@@ -116,6 +121,8 @@ const el = {
   authRole: document.querySelector("#authRole"),
   customerForm: document.querySelector("#customerForm"),
   receiptForm: document.querySelector("#receiptForm"),
+  esercizioSelectLabel: document.querySelector("#esercizioSelectLabel"),
+  esercizioSelect: document.querySelector("#esercizioSelect"),
   matricolaRtSelect: document.querySelector("#matricolaRtSelect"),
   matricolaRtNotice: document.querySelector("#matricolaRtNotice"),
   redemptionForm: document.querySelector("#redemptionForm"),
@@ -430,13 +437,17 @@ async function checkSupabaseDatabase() {
 // Chiederla al cliente (che dovrebbe trascriverla a mano da caratteri minuscoli in
 // fondo alla carta, spesso illeggibili all'OCR) e' una barriera senza contropartita.
 // La leggiamo dal registro e compiliamo noi.
-async function loadRegistratoriBar() {
-  if (!supabaseClient || !activeBar?.id) return;
+async function loadRegistratoriBar(barId) {
+  if (!supabaseClient || !barId) {
+    registratoriBar = [];
+    applyRegistratoriToReceiptForm();
+    return;
+  }
 
   const { data, error } = await supabaseClient
     .from("registratori_telematici")
     .select("id,matricola")
-    .eq("bar_id", activeBar.id)
+    .eq("bar_id", barId)
     .eq("attivo", true)
     .order("created_at", { ascending: true });
 
@@ -450,13 +461,78 @@ async function loadRegistratoriBar() {
   applyRegistratoriToReceiptForm();
 }
 
+// Il credito SQ vale in tutti gli esercizi aderenti: risolve quale bar_id usare per LO
+// SCONTRINO CHE SI STA CARICANDO, non "il bar dell'app". Un solo esercizio attivo:
+// nessuna scelta da chiedere, comportamento identico al pilot con un bar solo. Piu' di
+// uno: serve la scelta esplicita del cliente, mai un default indovinato.
+function risolviEsercizioSelezionato(bars, valoreCorrenteSelect) {
+  if (!bars.length) return null;
+  if (bars.length === 1) return bars[0].id;
+  const trovato = bars.find((b) => b.id === valoreCorrenteSelect);
+  return trovato ? trovato.id : null;
+}
+
+async function loadEserciziAttivi() {
+  if (!supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from("bar")
+    .select("id,nome")
+    .eq("attivo", true)
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento esercizi aderenti:", error);
+    eserciziAttivi = [];
+  } else {
+    eserciziAttivi = data || [];
+  }
+
+  applyEserciziToReceiptForm();
+}
+
+function applyEserciziToReceiptForm() {
+  const label = el.esercizioSelectLabel;
+  const menu = el.esercizioSelect;
+  if (!label || !menu) return;
+
+  if (eserciziAttivi.length <= 1) {
+    // Un solo esercizio (o nessuno): nessuna scelta da mostrare, comportamento
+    // identico a prima di questa modifica.
+    label.hidden = true;
+    menu.required = false;
+    menu.innerHTML = "";
+  } else {
+    label.hidden = false;
+    menu.required = true;
+    menu.innerHTML = eserciziAttivi
+      .map((b) => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.nome)}</option>`)
+      .join("");
+  }
+
+  esercizioSelezionatoId = risolviEsercizioSelezionato(eserciziAttivi, menu.value);
+  loadRegistratoriBar(esercizioSelezionatoId);
+}
+
 function applyRegistratoriToReceiptForm() {
   const campo = el.receiptForm?.matricolaRt;
   const menu = el.matricolaRtSelect;
   if (!campo || !menu) return;
 
-  // Nessun registratore noto: si torna al comportamento manuale, cosi' un esercizio
-  // non ancora censito non blocca i suoi clienti.
+  // Piu' di un esercizio attivo e il cliente non ha ancora scelto quale: non possiamo
+  // indovinare la matricola, il campo resta bloccato con un invito a scegliere sopra.
+  if (eserciziAttivi.length > 1 && !esercizioSelezionatoId) {
+    campo.hidden = false;
+    campo.readOnly = true;
+    campo.value = "";
+    menu.hidden = true;
+    menu.innerHTML = "";
+    setMatricolaNotice("Scegli prima da quale esercizio arriva lo scontrino.");
+    return;
+  }
+
+  // Nessun registratore noto per l'esercizio scelto: si torna al comportamento manuale,
+  // cosi' un esercizio non ancora censito non blocca i suoi clienti.
   if (!registratoriBar.length) {
     campo.hidden = false;
     campo.readOnly = false;
@@ -566,7 +642,7 @@ async function refreshPilotDataFromSupabase() {
   render();
   suppressLocalPersistence = true;
   try {
-    await loadRegistratoriBar();
+    await loadEserciziAttivi();
 
     if (authRole === "bar") {
       await loadBarReportFromSupabase();
@@ -1111,6 +1187,12 @@ function wireEvents() {
       el.receiptForm.matricolaRt.value = event.target.value;
     });
   }
+  if (el.esercizioSelect) {
+    el.esercizioSelect.addEventListener("change", (event) => {
+      esercizioSelezionatoId = risolviEsercizioSelezionato(eserciziAttivi, event.target.value);
+      loadRegistratoriBar(esercizioSelezionatoId);
+    });
+  }
   el.redemptionForm.addEventListener("submit", handleRedemptionSubmit);
   el.creditRequestForm.addEventListener("submit", handleCreditRequestSubmit);
 
@@ -1611,6 +1693,11 @@ async function submitReceipt(event) {
     return;
   }
 
+  if (eserciziAttivi.length > 1 && !esercizioSelezionatoId) {
+    stopReceiptSubmit("Scegli da quale esercizio arriva lo scontrino.");
+    return;
+  }
+
   if (!cleanText(form.get("matricolaRt"))) {
     stopReceiptSubmit("Inserisci la matricola del registratore telematico (la trovi sullo scontrino).");
     return;
@@ -1637,6 +1724,7 @@ async function submitReceipt(event) {
   const receipt = {
     id: crypto.randomUUID(),
     customerId: selectedCustomerId,
+    barId: esercizioSelezionatoId,
     barName: BAR_NAME,
     receiptDate: form.get("receiptDate"),
     receiptTime: form.get("receiptTime"),
@@ -1688,8 +1776,8 @@ async function submitReceipt(event) {
   receiptForm.reset();
   cameraReceiptFile = null;
   setTodayDefaults();
-  // reset() svuota anche la matricola compilata dal registro: la rimettiamo.
-  applyRegistratoriToReceiptForm();
+  // reset() svuota anche l'esercizio scelto e la matricola compilata: li rimettiamo.
+  applyEserciziToReceiptForm();
   resetOcrBox();
   updateReceiptCalculation();
   render();
@@ -2003,14 +2091,18 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
     return { ok: true };
   }
 
-  if (!activeBar?.id) {
-    return { ok: false, message: "bar pilota non trovato nel database" };
+  // receipt.barId e' l'esercizio scelto per QUESTO scontrino (modulo cliente, piu'
+  // esercizi possibili). Se assente (es. flusso cassiere-first, un solo bar per
+  // definizione) si usa activeBar come prima di questa modifica.
+  const barId = receipt.barId || activeBar?.id;
+  if (!barId) {
+    return { ok: false, message: "esercizio non trovato nel database" };
   }
 
   const { data, error } = await supabaseClient.rpc("registra_scontrino_pilot", {
     p_id: receipt.id,
     p_cliente_id: receipt.customerId,
-    p_bar_id: activeBar.id,
+    p_bar_id: barId,
     p_testo_ocr: receipt.ocr?.text || null,
     p_data_scontrino: receipt.receiptDate,
     p_ora_scontrino: receipt.receiptTime,
