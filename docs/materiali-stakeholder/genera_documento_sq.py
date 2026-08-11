@@ -22,6 +22,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 _FINAL_OUT = Path(__file__).parent / "9-documento-sq-v5.pdf"
 OUT = Path(tempfile.mktemp(suffix=".pdf"))
+LOGO_ICON_PATH = Path(__file__).parent / "logo-icon-only.png"
 
 # ── Font ──────────────────────────────────────────────────────────────────────
 FONT_BODY = "Helvetica"
@@ -115,6 +116,10 @@ ST = {
                   textColor=ORO, spaceAfter=3),
     "caption":_S("caption",fontName=FONT_ITAL,fontSize=8.5,leading=12,
                   textColor=MUTED, alignment=TA_CENTER),
+    "wordmark_cover":_S("wordmark_cover",fontName=FONT_BOLD,fontSize=21,leading=25,
+                      textColor=BIANCO, alignment=TA_CENTER, spaceAfter=0),
+    "wordmark_pref":_S("wordmark_pref",fontName=FONT_BOLD,fontSize=16,leading=20,
+                      textColor=BLU, alignment=TA_CENTER, spaceAfter=0),
     "th":   _S("th",  fontName=FONT_BOLD, fontSize=10, leading=14, textColor=BIANCO),
     "td":   _S("td",  fontName=FONT_BODY, fontSize=10, leading=14, textColor=GRIGIO),
     "td_p": _S("td_p",fontName=FONT_BOLD, fontSize=11, leading=14,
@@ -407,6 +412,43 @@ class StepFlow(Flowable):
         c.restoreState()
 
 
+class CircleLogo(Flowable):
+    """Circular badge: plate + ring + centered icon image, clipped to circle."""
+    def __init__(self, path, d, ring_c=ORO, ring_w=1.4, bg=BIANCO, shadow=True):
+        super().__init__()
+        self._path = str(path)
+        self._d = d
+        self._ring = ring_c
+        self._rw = ring_w
+        self._bg = bg
+        self._shadow = shadow
+
+    def wrap(self, aw, ah):
+        return (self._d, self._d)
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        r = self._d / 2
+        if self._shadow:
+            c.setFillColor(colors.HexColor("#00000022"))
+            c.circle(r + 1.5, r - 1.5, r, fill=1, stroke=0)
+        c.setFillColor(self._bg)
+        c.circle(r, r, r, fill=1, stroke=0)
+        inset = self._d * 0.16
+        p = c.beginPath()
+        p.circle(r, r, r - inset)
+        c.clipPath(p, stroke=0)
+        c.drawImage(self._path, inset, inset, self._d - 2*inset, self._d - 2*inset,
+                    mask='auto', preserveAspectRatio=True)
+        c.restoreState()
+        c.saveState()
+        c.setStrokeColor(self._ring)
+        c.setLineWidth(self._rw)
+        c.circle(r, r, r, fill=0, stroke=1)
+        c.restoreState()
+
+
 class SecBadge(Flowable):
     """Pill badge with section number."""
     def __init__(self, num, w=1.5*cm, h=1.5*cm):
@@ -600,8 +642,14 @@ def build_story():
     story = []
 
     # COVER
+    logo_cover = CircleLogo(LOGO_ICON_PATH, 3.2*cm, ring_c=ORO, bg=BIANCO)
+    logo_cover.hAlign = "CENTER"
     story += [
-        SP(3.2),
+        SP(2.0),
+        logo_cover,
+        SP(0.4),
+        P("Salute Quotidiana", "wordmark_cover"),
+        SP(0.5),
         P("UN PROGRAMMA DI SALUTE QUOTIDIANA", "cover_eye"),
         SP(0.3),
         P("Credito Salute SQ", "cover_title"),
@@ -613,13 +661,56 @@ def build_story():
         PageBreak(),
     ]
 
+    # ── PREFAZIONE ────────────────────────────────────────────────────────────
+    logo_pref = CircleLogo(LOGO_ICON_PATH, 2.4*cm, ring_c=VERDE, bg=BIANCO)
+    logo_pref.hAlign = "CENTER"
+    story += [
+        SP(0.2),
+        logo_pref,
+        SP(0.3),
+        P("Salute Quotidiana", "wordmark_pref"),
+        SP(0.4),
+        P("Prefazione", "h1"),
+        HRFlowable(width="100%", thickness=2, color=ORO, spaceAfter=10, spaceBefore=4),
+        P("Perché nasce Salute Quotidiana", "h2"),
+        P("Da oltre un decennio la spesa sanitaria pubblica italiana cresce meno del "
+          "fabbisogno reale. La Fondazione GIMBE, il riferimento indipendente più citato "
+          "in Italia sul finanziamento del Servizio Sanitario Nazionale, documenta ogni "
+          "anno un definanziamento strutturale del SSN: la spesa pubblica resta stabilmente "
+          "sotto la media dei paesi europei ad economia comparabile. La Corte dei Conti, "
+          "nelle relazioni annuali sulla gestione finanziaria degli enti sanitari, segnala "
+          "gli stessi squilibri: liste d'attesa più lunghe, personale insufficiente, "
+          "prestazioni rinviate anno dopo anno."),
+        SP(0.3),
+        P("Non è un'emergenza improvvisa, è l'effetto accumulato di anni di risorse "
+          "insufficienti rispetto ai bisogni reali della popolazione. Lo misura direttamente "
+          "l'ISTAT: una parte crescente di famiglie italiane rinuncia a curarsi. Non per "
+          "mancanza di bisogno, ma per i costi, per i tempi di attesa, per la fatica di "
+          "organizzare anche una prestazione semplice. Chi è anziano, ha mobilità ridotta o "
+          "vive in un piccolo centro lontano dai servizi resta indietro più di tutti."),
+        SP(0.3),
+        LeftBar([
+            P("Salute Quotidiana nasce da qui. Non sostituisce il sistema sanitario pubblico "
+              "e non interviene sulle sue politiche: risponde in modo pratico e locale a un "
+              "bisogno concreto. È <b>una rete di prossimità che usa risorse già presenti sul "
+              "territorio</b>, il budget promozionale degli esercizi commerciali di prossimità, "
+              "per avvicinare l'accesso a prestazioni infermieristiche di base, qui e adesso, "
+              "senza aspettare che il quadro nazionale cambi.", "body_l"),
+        ], bar_c=VERDE, bg=VERDE_LT, width=BODY_W),
+        SP(0.4),
+        P("Fonti: Fondazione GIMBE, Rapporto annuale sul definanziamento del SSN · "
+          "Corte dei Conti, Relazione sulla gestione finanziaria degli enti del Servizio "
+          "sanitario nazionale · ISTAT, indagini su rinuncia alle cure.", "caption"),
+        PageBreak(),
+    ]
+
     # ── 01 ────────────────────────────────────────────────────────────────────
     story += sec_block("01", "Il budget promozionale non lascia nulla",
         P("Ogni anno, esercizi commerciali investono in gadget, volantini, calendari e omaggi. "
           "Il cliente li dimentica nel giro di pochi giorni. Il budget è speso, "
-          "la fidelizzazione non c'è — e l'anno dopo si ricomincia da capo."),
+          "la fidelizzazione non c'è, e l'anno dopo si ricomincia da capo."),
         SP(0.3),
-        P("Non è un problema di quanto si investe. È un problema di dove quel budget atterra."),
+        P("Il vero problema è dove finisce quel budget, non quanto se ne investe."),
     )
     story += [
         SP(0.5),
@@ -662,8 +753,8 @@ def build_story():
     story += [
         SP(0.5),
         LeftBar([
-            P("<b>L'opportunità:</b> non è un discorso sulla sanità pubblica. "
-              "È un'opportunità locale concreta per chi già serve queste famiglie ogni giorno.",
+            P("<b>L'opportunità:</b> è concreta e locale, per chi già serve queste famiglie "
+              "ogni giorno. Non serve aspettare un cambiamento della sanità pubblica.",
               "body_l"),
         ], bar_c=VERDE, bg=VERDE_LT, width=BODY_W),
         SP(0.5),
@@ -699,8 +790,8 @@ def build_story():
     story += [
         SP(0.4), flow_t, SP(0.4),
         LeftBar([
-            P("Il valore resta nel territorio. Nessun intermediario finanziario. "
-              "<b>Non è un costo diverso: è lo stesso budget che arriva dove conta.</b>",
+            P("Il valore resta nel territorio, senza intermediari finanziari. "
+              "<b>È lo stesso budget di sempre, solo indirizzato dove conta davvero.</b>",
               "body_l"),
         ], bar_c=BLU_M, bg=BLU_LT, width=BODY_W),
         SP(0.5),
@@ -746,9 +837,9 @@ def build_story():
     story += [SP(0.35), ftbl, SP(0.5)]
 
     # ── 05 ────────────────────────────────────────────────────────────────────
-    story += sec_block("05", "Tre ruoli — zero gestione sanitaria per l'esercizio",
+    story += sec_block("05", "Tre ruoli, zero gestione sanitaria per l'esercizio",
         P("Il programma funziona perché ogni ruolo è separato e non si sovrappone. "
-          "L'esercizio non tocca nulla di sanitario. Mai."),
+          "L'esercizio non tocca mai nulla di sanitario."),
     )
     cw3 = (BODY_W - 0.6*cm) / 3
     _note = ParagraphStyle("note_w", fontName=FONT_ITAL, fontSize=9,
@@ -862,17 +953,24 @@ def build_story():
     story += [
         SP(0.45),
         GradBox([
-            P("Non è un vantaggio individuale. È un beneficio che si condivide.", "callout"),
-            P("La cedibilità sposta la conversazione dal cliente singolo "
-              "al beneficio di comunità.", "callout_sub"),
+            P("Un beneficio che si condivide, non solo un vantaggio individuale.", "callout"),
+            P("Con la cedibilità, il credito smette di essere solo del cliente "
+              "e diventa un beneficio per la comunità.", "callout_sub"),
         ], BLU, BLU_DARK, width=BODY_W, py=0.45*cm),
+        SP(0.4),
+        LeftBar([
+            P("<b>Lista dei Silenziosi:</b> chi vuole può donare credito in forma anonima "
+              "a un fondo condiviso. Chi ha bisogno accede compilando un questionario "
+              "riservato: la ripartizione tra beneficiari è dinamica e proporzionale "
+              "al bisogno espresso, senza tetto di spesa.", "body_l"),
+        ], bar_c=VERDE, bg=VERDE_LT, width=BODY_W),
         SP(0.5),
     ]
 
     # ── 09 ────────────────────────────────────────────────────────────────────
     story += sec_block("09", "Il pilot: rischio massimo già definito prima di firmare",
-        P("Il primo ciclo è strutturato come un pilot a scala controllata, "
-          "progettato per produrre dati concreti con il minimo rischio possibile."),
+        P("Il primo ciclo è un pilot a scala controllata: pensato per produrre dati concreti "
+          "tenendo il rischio al minimo."),
     )
     story += [
         SP(0.45),
@@ -890,15 +988,16 @@ def build_story():
         SP(0.35),
         GradBox([
             P("Rischio massimo = fondo stanziato.", "callout"),
-            P("Nessun costo variabile aperto. Nessuna sorpresa.", "callout_sub"),
+            P("Nessun costo variabile fuori controllo: quello che si versa è quello "
+              "che si rischia, non un euro di più.", "callout_sub"),
         ], VERDE, VERDE_D, width=BODY_W, py=0.4*cm),
         SP(0.5),
     ]
 
     # ── 10 ────────────────────────────────────────────────────────────────────
     story += sec_block("10", "La piattaforma funziona già",
-        P("Accessibile da qualsiasi smartphone via browser — nessuna installazione, "
-          "nessun training per lo staff. Ogni ruolo ha una vista dedicata "
+        P("Si usa da qualsiasi smartphone via browser, senza installare nulla e senza "
+          "training per lo staff. Ogni ruolo ha una vista dedicata "
           "con accesso esclusivo ai propri dati."),
     )
     cw3b = (BODY_W - 0.6*cm) / 3
@@ -906,7 +1005,8 @@ def build_story():
         ("Cliente",           BLU,   BLU_DARK, ["Saldo credito in tempo reale",
                                                  "Caricamento scontrino con foto",
                                                  "Storico movimenti e scontrini",
-                                                 "Prenotazione prestazione con i crediti"]),
+                                                 "Prenotazione prestazione con i crediti",
+                                                 "Conferma prestazione con QR anti-imbroglio"]),
         ("Esercizio",         BLU_M, BLU,      ["Dashboard iscritti e crediti",
                                                  "Verifica stato del fondo",
                                                  "Accesso al report periodico",
@@ -931,15 +1031,15 @@ def build_story():
     ]))
     story += [
         SP(0.4), pt, SP(0.3),
-        P("Stack: HTML/CSS/JS + Supabase. Zero installazione. "
-          "Funziona su qualsiasi smartphone, anche vecchio.", "caption"),
+        P("Stack: HTML/CSS/JS + Supabase, nessuna installazione richiesta. "
+          "Funziona su qualsiasi smartphone, anche datato.", "caption"),
         SP(0.5),
     ]
 
     # ── 11 ────────────────────────────────────────────────────────────────────
     story += sec_block("11", "Il programma parte questa settimana",
         P("Il primo esercizio è già attivo. "
-          "Il pilot è in corso — i dati saranno disponibili a fine ciclo."),
+          "Il pilot è in corso, i dati saranno disponibili a fine ciclo."),
     )
     cta_w = (BODY_W - 0.5*cm) / 2
     cta_l = GradBox([
@@ -968,7 +1068,7 @@ def build_story():
         SP(0.55),
         LeftBar([
             P("<b>Contatti:</b> angelo.rosso073@gmail.com", "body_l"),
-            P("Pilot già attivo — rischio zero.", "body_l"),
+            P("Pilot già attivo, rischio già definito prima di firmare.", "body_l"),
         ], bar_c=ORO, bg=ORO_LT, width=BODY_W),
         SP(0.9),
         HR(BLU_LT),
