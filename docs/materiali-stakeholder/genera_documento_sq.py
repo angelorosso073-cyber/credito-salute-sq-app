@@ -13,16 +13,17 @@ from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.platypus import (
-    BaseDocTemplate, PageTemplate, Frame, Flowable,
+    BaseDocTemplate, PageTemplate, Frame, Flowable, Image,
     Paragraph, Spacer, Table, TableStyle, HRFlowable,
-    KeepTogether, PageBreak, CondPageBreak, NextPageTemplate
+    KeepTogether, PageBreak, CondPageBreak
 )
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 _FINAL_OUT = Path(__file__).parent / "9-documento-sq-v5.pdf"
 OUT = Path(tempfile.mktemp(suffix=".pdf"))
-LOGO_ICON_PATH = Path(__file__).parent / "logo-icon-only.png"
+LOGO_FULL_PATH = Path(__file__).parent / "logo-completo.png"
+LOGO_FULL_RATIO = 779 / 494  # icona + wordmark "Salute Quotidiana" + tagline, come nell'app
 
 # ── Font ──────────────────────────────────────────────────────────────────────
 FONT_BODY = "Helvetica"
@@ -82,13 +83,13 @@ def _S(name, **kw):
 
 ST = {
     "cover_eye":  _S("cover_eye",  fontName=FONT_BOLD, fontSize=9,  leading=13,
-                      textColor=ORO, spaceAfter=6),
+                      textColor=VERDE_D, spaceAfter=6),
     "cover_title":_S("cover_title",fontName=FONT_BOLD, fontSize=40, leading=46,
-                      textColor=BIANCO, spaceAfter=12),
+                      textColor=BLU_DARK, spaceAfter=12),
     "cover_sub":  _S("cover_sub",  fontName=FONT_BODY, fontSize=15, leading=23,
-                      textColor=colors.HexColor("#C8DCEE"), spaceAfter=0),
+                      textColor=GRIGIO, spaceAfter=0),
     "cover_date": _S("cover_date", fontName=FONT_BODY, fontSize=9,  leading=13,
-                      textColor=MUTED_LT),
+                      textColor=MUTED),
     "h1":   _S("h1",  fontName=FONT_BOLD, fontSize=18, leading=24,
                 textColor=BLU, spaceBefore=0, spaceAfter=8),
     "h2":   _S("h2",  fontName=FONT_BOLD, fontSize=14, leading=20,
@@ -116,10 +117,6 @@ ST = {
                   textColor=ORO, spaceAfter=3),
     "caption":_S("caption",fontName=FONT_ITAL,fontSize=8.5,leading=12,
                   textColor=MUTED, alignment=TA_CENTER),
-    "wordmark_cover":_S("wordmark_cover",fontName=FONT_BOLD,fontSize=21,leading=25,
-                      textColor=BIANCO, alignment=TA_CENTER, spaceAfter=0),
-    "wordmark_pref":_S("wordmark_pref",fontName=FONT_BOLD,fontSize=16,leading=20,
-                      textColor=BLU, alignment=TA_CENTER, spaceAfter=0),
     "th":   _S("th",  fontName=FONT_BOLD, fontSize=10, leading=14, textColor=BIANCO),
     "td":   _S("td",  fontName=FONT_BODY, fontSize=10, leading=14, textColor=GRIGIO),
     "td_p": _S("td_p",fontName=FONT_BOLD, fontSize=11, leading=14,
@@ -412,43 +409,6 @@ class StepFlow(Flowable):
         c.restoreState()
 
 
-class CircleLogo(Flowable):
-    """Circular badge: plate + ring + centered icon image, clipped to circle."""
-    def __init__(self, path, d, ring_c=ORO, ring_w=1.4, bg=BIANCO, shadow=True):
-        super().__init__()
-        self._path = str(path)
-        self._d = d
-        self._ring = ring_c
-        self._rw = ring_w
-        self._bg = bg
-        self._shadow = shadow
-
-    def wrap(self, aw, ah):
-        return (self._d, self._d)
-
-    def draw(self):
-        c = self.canv
-        c.saveState()
-        r = self._d / 2
-        if self._shadow:
-            c.setFillColor(colors.HexColor("#00000022"))
-            c.circle(r + 1.5, r - 1.5, r, fill=1, stroke=0)
-        c.setFillColor(self._bg)
-        c.circle(r, r, r, fill=1, stroke=0)
-        inset = self._d * 0.16
-        p = c.beginPath()
-        p.circle(r, r, r - inset)
-        c.clipPath(p, stroke=0)
-        c.drawImage(self._path, inset, inset, self._d - 2*inset, self._d - 2*inset,
-                    mask='auto', preserveAspectRatio=True)
-        c.restoreState()
-        c.saveState()
-        c.setStrokeColor(self._ring)
-        c.setLineWidth(self._rw)
-        c.circle(r, r, r, fill=0, stroke=1)
-        c.restoreState()
-
-
 class SecBadge(Flowable):
     """Pill badge with section number."""
     def __init__(self, num, w=1.5*cm, h=1.5*cm):
@@ -477,69 +437,40 @@ class SecBadge(Flowable):
 
 
 # ── Page chrome ───────────────────────────────────────────────────────────────
-def _chrome(canv, doc, cover=False):
+# Stesso sfondo su ogni pagina, copertina compresa: stessa intestazione blu,
+# stesso piè di pagina, nessun trattamento scuro separato per la prima pagina.
+def _chrome(canv, doc):
     canv.saveState()
-    if cover:
-        # background
-        canv.setFillColor(BLU_DARK)
-        canv.rect(0, 0, PW, PH, fill=1, stroke=0)
-        # deco circles top-right
-        canv.setFillColor(colors.HexColor("#1C3F68"))
-        canv.circle(PW-1.2*cm, PH-0.8*cm, 5.8*cm, fill=1, stroke=0)
-        canv.setFillColor(colors.HexColor("#163255"))
-        canv.circle(PW-0.5*cm, PH-0.2*cm, 3.9*cm, fill=1, stroke=0)
-        # deco circle bottom-left
-        canv.setFillColor(colors.HexColor("#1C3F68"))
-        canv.circle(1.2*cm, 2.2*cm, 2.4*cm, fill=1, stroke=0)
-        # left stripe
-        canv.setFillColor(VERDE)
-        canv.rect(0, 0, STRIPE, PH, fill=1, stroke=0)
-        # bottom band
-        canv.setFillColor(VERDE_D)
-        canv.rect(0, 0, PW, 1.5*cm, fill=1, stroke=0)
-        # gold accent line above bottom band
-        canv.setFillColor(ORO)
-        canv.rect(STRIPE, 1.5*cm, PW-STRIPE, 2.5, fill=1, stroke=0)
-    else:
-        canv.setFillColor(G_XL)
-        canv.rect(0, 0, PW, PH, fill=1, stroke=0)
-        # left stripe
-        canv.setFillColor(VERDE)
-        canv.rect(0, 0, STRIPE, PH, fill=1, stroke=0)
-        # header bar
-        canv.setFillColor(BLU)
-        canv.rect(0, PH-1.05*cm, PW, 1.05*cm, fill=1, stroke=0)
-        # gold line under header
-        canv.setFillColor(ORO)
-        canv.rect(0, PH-1.05*cm-2.5, PW, 2.5, fill=1, stroke=0)
-        canv.setFillColor(BIANCO)
+    canv.setFillColor(G_XL)
+    canv.rect(0, 0, PW, PH, fill=1, stroke=0)
+    # left stripe
+    canv.setFillColor(VERDE)
+    canv.rect(0, 0, STRIPE, PH, fill=1, stroke=0)
+    # header bar
+    canv.setFillColor(BLU)
+    canv.rect(0, PH-1.05*cm, PW, 1.05*cm, fill=1, stroke=0)
+    # gold line under header
+    canv.setFillColor(ORO)
+    canv.rect(0, PH-1.05*cm-2.5, PW, 2.5, fill=1, stroke=0)
+    canv.setFillColor(BIANCO)
+    canv.setFont(FONT_BOLD, 8)
+    canv.drawString(ML+STRIPE+0.2*cm, PH-0.68*cm, "Credito Salute SQ")
+    canv.setFont(FONT_BODY, 8)
+    canv.setFillColor(MUTED_LT)
+    canv.drawRightString(PW-MR, PH-0.68*cm, "Salute Quotidiana")
+    # footer
+    canv.setFillColor(BLU_DARK)
+    canv.rect(0, 0, PW, 0.88*cm, fill=1, stroke=0)
+    canv.setFillColor(VERDE)
+    canv.rect(STRIPE, 0, PW-STRIPE, 2.5, fill=1, stroke=0)
+    canv.setFont(FONT_BODY, 7)
+    canv.setFillColor(MUTED_LT)
+    canv.drawString(ML+STRIPE+0.2*cm, 0.31*cm, "Documento riservato · Luglio 2026")
+    if hasattr(doc, 'page'):
         canv.setFont(FONT_BOLD, 8)
-        canv.drawString(ML+STRIPE+0.2*cm, PH-0.68*cm, "Credito Salute SQ")
-        canv.setFont(FONT_BODY, 8)
-        canv.setFillColor(MUTED_LT)
-        canv.drawRightString(PW-MR, PH-0.68*cm, "Salute Quotidiana")
-        # footer
-        canv.setFillColor(BLU_DARK)
-        canv.rect(0, 0, PW, 0.88*cm, fill=1, stroke=0)
-        canv.setFillColor(VERDE)
-        canv.rect(STRIPE, 0, PW-STRIPE, 2.5, fill=1, stroke=0)
-        canv.setFont(FONT_BODY, 7)
-        canv.setFillColor(MUTED_LT)
-        canv.drawString(ML+STRIPE+0.2*cm, 0.31*cm, "Documento riservato · Luglio 2026")
-        if hasattr(doc, 'page'):
-            canv.setFont(FONT_BOLD, 8)
-            canv.setFillColor(BIANCO)
-            canv.drawRightString(PW-MR, 0.31*cm, str(doc.page))
+        canv.setFillColor(BIANCO)
+        canv.drawRightString(PW-MR, 0.31*cm, str(doc.page))
     canv.restoreState()
-
-
-class CoverTpl(PageTemplate):
-    def __init__(self):
-        f = Frame(ML+STRIPE, 1.5*cm, BODY_W, PH-1.5*cm-2.8*cm,
-                  leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-        super().__init__('cover', [f])
-    def beforeDrawPage(self, canv, doc):
-        _chrome(canv, doc, cover=True)
 
 
 class BodyTpl(PageTemplate):
@@ -549,7 +480,7 @@ class BodyTpl(PageTemplate):
                   leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
         super().__init__('body', [f])
     def beforeDrawPage(self, canv, doc):
-        _chrome(canv, doc, cover=False)
+        _chrome(canv, doc)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -642,14 +573,12 @@ def build_story():
     story = []
 
     # COVER
-    logo_cover = CircleLogo(LOGO_ICON_PATH, 3.2*cm, ring_c=ORO, bg=BIANCO)
+    logo_cover = Image(str(LOGO_FULL_PATH), width=7*cm, height=7*cm/LOGO_FULL_RATIO)
     logo_cover.hAlign = "CENTER"
     story += [
-        SP(2.0),
+        SP(1.6),
         logo_cover,
-        SP(0.4),
-        P("Salute Quotidiana", "wordmark_cover"),
-        SP(0.5),
+        SP(0.9),
         P("UN PROGRAMMA DI SALUTE QUOTIDIANA", "cover_eye"),
         SP(0.3),
         P("Credito Salute SQ", "cover_title"),
@@ -662,14 +591,8 @@ def build_story():
     ]
 
     # ── PREFAZIONE ────────────────────────────────────────────────────────────
-    logo_pref = CircleLogo(LOGO_ICON_PATH, 2.4*cm, ring_c=VERDE, bg=BIANCO)
-    logo_pref.hAlign = "CENTER"
     story += [
         SP(0.2),
-        logo_pref,
-        SP(0.3),
-        P("Salute Quotidiana", "wordmark_pref"),
-        SP(0.4),
         P("Prefazione", "h1"),
         HRFlowable(width="100%", thickness=2, color=ORO, spaceAfter=10, spaceBefore=4),
         P("Perché nasce Salute Quotidiana", "h2"),
@@ -873,6 +796,36 @@ def build_story():
     ]))
     story += [SP(0.45), roles, SP(0.5)]
 
+    def screenshot_cell(path, ratio, caption, color):
+        img = Image(str(path), width=cw3, height=cw3/ratio)
+        framed = Table([[img]], colWidths=[cw3])
+        framed.setStyle(TableStyle([
+            ("BOX", (0,0),(-1,-1), 1.2, color),
+            ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+            ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
+        ]))
+        cap_style = ParagraphStyle("shot_cap", fontName=FONT_BOLD, fontSize=9,
+                                    leading=13, textColor=color, spaceAfter=5)
+        return [P(caption, cap_style), framed]
+
+    SCREENSHOT_RATIO = 921/2048  # schermata intera del telefono, non ritagliata
+    screenshots = Table([[
+        screenshot_cell(Path(__file__).parent / "screenshot-bar.png", SCREENSHOT_RATIO,
+                         "Cosa vede l'esercizio", BLU_DARK),
+        Spacer(0.3*cm, 1),
+        screenshot_cell(Path(__file__).parent / "screenshot-cliente.png", SCREENSHOT_RATIO,
+                         "Cosa vede il cliente", BLU),
+        Spacer(0.3*cm, 1),
+        screenshot_cell(Path(__file__).parent / "screenshot-salute-quotidiana.png", SCREENSHOT_RATIO,
+                         "Cosa vede Salute Quotidiana", VERDE_D),
+    ]], colWidths=[cw3, 0.3*cm, cw3, 0.3*cm, cw3])
+    screenshots.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
+        ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+        ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
+    ]))
+    story += [screenshots, SP(0.5)]
+
     # ── 06 — sempre su pagina nuova ───────────────────────────────────────────
     story.append(PageBreak())
     story += sec_hdr("06", "Dodici prestazioni a domicilio")
@@ -995,11 +948,10 @@ def build_story():
     ]
 
     # ── 10 ────────────────────────────────────────────────────────────────────
-    story += sec_block("10", "La piattaforma funziona già",
-        P("Si usa da qualsiasi smartphone via browser, senza installare nulla e senza "
-          "training per lo staff. Ogni ruolo ha una vista dedicata "
-          "con accesso esclusivo ai propri dati."),
-    )
+    # Titolo + tabella tenuti insieme in un solo KeepTogether: con solo l'intro
+    # protetta (come faceva sec_block da solo), il titolo puo' restare orfano in
+    # fondo pagina mentre la tabella scivola su quella dopo — successo davvero
+    # dopo aver allungato la sezione 05 con gli screenshot.
     cw3b = (BODY_W - 0.6*cm) / 3
     _roles10 = [
         ("Cliente",           BLU,   BLU_DARK, ["Saldo credito in tempo reale",
@@ -1029,10 +981,15 @@ def build_story():
         ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
         ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
+    sez10_hdr = sec_hdr("10", "La piattaforma funziona già")
+    sez10_intro = P("Si usa da qualsiasi smartphone via browser, senza installare nulla e senza "
+                     "training per lo staff. Ogni ruolo ha una vista dedicata "
+                     "con accesso esclusivo ai propri dati.")
+    sez10_caption = P("Stack: HTML/CSS/JS + Supabase, nessuna installazione richiesta. "
+                       "Funziona su qualsiasi smartphone, anche datato.", "caption")
     story += [
-        SP(0.4), pt, SP(0.3),
-        P("Stack: HTML/CSS/JS + Supabase, nessuna installazione richiesta. "
-          "Funziona su qualsiasi smartphone, anche datato.", "caption"),
+        CondPageBreak(15*cm),
+        KeepTogether(sez10_hdr + [sez10_intro, SP(0.4), pt, SP(0.3), sez10_caption]),
         SP(0.5),
     ]
 
@@ -1066,14 +1023,16 @@ def build_story():
         SP(0.45),
         KeepTogether([cta_t]),
         SP(0.55),
-        LeftBar([
-            P("<b>Contatti:</b> angelo.rosso073@gmail.com", "body_l"),
-            P("Pilot già attivo, rischio già definito prima di firmare.", "body_l"),
-        ], bar_c=ORO, bg=ORO_LT, width=BODY_W),
-        SP(0.9),
-        HR(BLU_LT),
-        P("Credito Salute SQ  ·  Salute Quotidiana  ·  Documento riservato  ·  Luglio 2026",
-          "caption"),
+        KeepTogether([
+            LeftBar([
+                P("<b>Contatti:</b> angelo.rosso073@gmail.com", "body_l"),
+                P("Pilot già attivo, rischio già definito prima di firmare.", "body_l"),
+            ], bar_c=ORO, bg=ORO_LT, width=BODY_W),
+            SP(0.9),
+            HR(BLU_LT),
+            P("Credito Salute SQ  ·  Salute Quotidiana  ·  Documento riservato  ·  Luglio 2026",
+              "caption"),
+        ]),
     ]
 
     return story
@@ -1084,15 +1043,12 @@ def main():
     doc = BaseDocTemplate(
         str(OUT), pagesize=A4,
         leftMargin=0, rightMargin=0, topMargin=0, bottomMargin=0,
-        title="Credito Salute SQ — Presentazione",
+        title="Credito Salute SQ, Presentazione",
         author="Salute Quotidiana",
         subject="Documento di presentazione commerciale",
     )
-    doc.addPageTemplates([CoverTpl(), BodyTpl()])
+    doc.addPageTemplates([BodyTpl()])
     story = build_story()
-    story.insert(0, NextPageTemplate('cover'))
-    pb_idx = next(i for i,f in enumerate(story) if isinstance(f, PageBreak))
-    story.insert(pb_idx, NextPageTemplate('body'))
     doc.build(story)
     shutil.move(str(OUT), str(_FINAL_OUT))
     print(f"OK  {_FINAL_OUT.name}")
