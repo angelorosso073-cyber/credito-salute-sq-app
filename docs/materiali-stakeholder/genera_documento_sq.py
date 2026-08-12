@@ -593,9 +593,8 @@ def build_story():
     # ── PREFAZIONE ────────────────────────────────────────────────────────────
     story += [
         SP(0.2),
-        P("Prefazione", "h1"),
+        P("Perché nasce Salute Quotidiana", "h1"),
         HRFlowable(width="100%", thickness=2, color=ORO, spaceAfter=10, spaceBefore=4),
-        P("Perché nasce Salute Quotidiana", "h2"),
         P("Da oltre un decennio la spesa sanitaria pubblica italiana cresce meno del "
           "fabbisogno reale. La Fondazione GIMBE, il riferimento indipendente più citato "
           "in Italia sul finanziamento del Servizio Sanitario Nazionale, documenta ogni "
@@ -826,8 +825,8 @@ def build_story():
     ]))
     story += [screenshots, SP(0.5)]
 
-    # ── 06 — sempre su pagina nuova ───────────────────────────────────────────
-    story.append(PageBreak())
+    # ── 06 ────────────────────────────────────────────────────────────────────
+    story.append(CondPageBreak(9*cm))
     story += sec_hdr("06", "Dodici prestazioni a domicilio")
     story += [
         SP(0.1),
@@ -930,8 +929,8 @@ def build_story():
         BigNumber([
             ("1",      "esercizio\ncommerciale", BLU),
             ("20",     "clienti\nper ciclo",     BLU_M),
-            ("30",     "giorni\ndi durata",      VERDE),
-            ("1.000 €","fondo\nstanziato",       VERDE_D),
+            ("90",     "giorni\ndi durata",      VERDE),
+            ("1.000 €","esempio di\nfondo stanziato", VERDE_D),
         ], width=BODY_W),
         SP(0.55),
         P("Il pilot produce dati concreti su:", "h3"),
@@ -982,11 +981,11 @@ def build_story():
         ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
     sez10_hdr = sec_hdr("10", "La piattaforma funziona già")
-    sez10_intro = P("Si usa da qualsiasi smartphone via browser, senza installare nulla e senza "
-                     "training per lo staff. Ogni ruolo ha una vista dedicata "
-                     "con accesso esclusivo ai propri dati.")
-    sez10_caption = P("Stack: HTML/CSS/JS + Supabase, nessuna installazione richiesta. "
-                       "Funziona su qualsiasi smartphone, anche datato.", "caption")
+    sez10_intro = P("Si usa da qualsiasi smartphone via browser ed è installabile come app (PWA) "
+                     "con un tocco, senza bisogno di training per lo staff. Ogni ruolo ha una "
+                     "vista dedicata con accesso esclusivo ai propri dati.")
+    sez10_caption = P("Stack: HTML/CSS/JS + Supabase, installabile come PWA su qualsiasi "
+                       "smartphone, anche datato.", "caption")
     story += [
         CondPageBreak(15*cm),
         KeepTogether(sez10_hdr + [sez10_intro, SP(0.4), pt, SP(0.3), sez10_caption]),
@@ -994,9 +993,10 @@ def build_story():
     ]
 
     # ── 11 ────────────────────────────────────────────────────────────────────
-    story += sec_block("11", "Il programma parte questa settimana",
-        P("Il primo esercizio è già attivo. "
-          "Il pilot è in corso, i dati saranno disponibili a fine ciclo."),
+    story += sec_block("11", "Il programma partirà a breve",
+        P("Il primo esercizio commerciale in assoluto ad aderire al progetto potresti essere tu. "
+          "Immagina, in termini di pubblicità, quali potenziali benefici potrebbe portare "
+          "la tua decisione di aderire."),
     )
     cta_w = (BODY_W - 0.5*cm) / 2
     cta_l = GradBox([
@@ -1025,13 +1025,8 @@ def build_story():
         SP(0.55),
         KeepTogether([
             LeftBar([
-                P("<b>Contatti:</b> angelo.rosso073@gmail.com", "body_l"),
-                P("Pilot già attivo, rischio già definito prima di firmare.", "body_l"),
+                P("<b>Contatti:</b> angelo.rosso073@gmail.com  ·  Tel. 331/5677922", "body_l"),
             ], bar_c=ORO, bg=ORO_LT, width=BODY_W),
-            SP(0.9),
-            HR(BLU_LT),
-            P("Credito Salute SQ  ·  Salute Quotidiana  ·  Documento riservato  ·  Luglio 2026",
-              "caption"),
         ]),
     ]
 
