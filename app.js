@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v58";
+const APP_VERSION = "v75";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -85,7 +85,7 @@ const initialState = {
   nextCustomerNumber: 1
 };
 
-let state = loadState();
+let state = structuredClone(initialState);
 let currentOcrResult = null;
 let supabaseClient = null;
 let activeBar = null;
@@ -123,6 +123,8 @@ const el = {
   authStatus: document.querySelector("#authStatus"),
   signupStatus: document.querySelector("#signupStatus"),
   authRole: document.querySelector("#authRole"),
+  splashStats: document.querySelector("#splashStats"),
+  publicPilotStats: document.querySelector("#publicPilotStats"),
   customerForm: document.querySelector("#customerForm"),
   receiptForm: document.querySelector("#receiptForm"),
   esercizioSelectLabel: document.querySelector("#esercizioSelectLabel"),
@@ -220,14 +222,19 @@ const el = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const splashMin = new Promise(r => setTimeout(r, 1800));
+  const splashMin = new Promise(r => setTimeout(r, 3000));
   if (initPublicSaldo()) { hideSplash(); return; }
   initSupabase();
+  const publicStatsPromise = loadPublicPilotStats();
   wireEvents();
   renderRedemptionServiceOptions();
   setTodayDefaults();
   await bootstrapAuth();
   render();
+  await Promise.race([
+    publicStatsPromise,
+    new Promise((resolve) => setTimeout(resolve, 900))
+  ]);
   await splashMin;
   hideSplash();
   checkSupabaseDatabase();
@@ -299,11 +306,11 @@ async function setAuthState(session) {
       authProfile = await createCustomerProfileForUser(authSession.user);
     }
     authRole = resolveAuthRole(authProfile, authSession.user);
-    if (authRole === "cliente" || authRole === "bar") {
+    if (shouldLoadRemoteData()) {
       resetPilotData();
     }
   } else {
-    state = loadState();
+    resetPilotData();
     currentOcrResult = null;
   }
 
@@ -415,6 +422,83 @@ function setSupabaseStatus(message, status) {
 
   el.supabaseStatus.textContent = message;
   el.supabaseStatus.dataset.status = status;
+}
+
+async function loadPublicPilotStats() {
+  if (!supabaseClient) {
+    renderPublicPilotStats(null);
+    return null;
+  }
+
+  try {
+    const rpcStats = await loadPublicPilotStatsFromRpc();
+    const stats = rpcStats || await loadPublicPilotStatsFromCounts();
+    renderPublicPilotStats(stats);
+    return stats;
+  } catch (error) {
+    console.warn("Statistiche pubbliche pilot non disponibili:", error);
+    renderPublicPilotStats(null);
+    return null;
+  }
+}
+
+async function loadPublicPilotStatsFromRpc() {
+  const { data, error } = await supabaseClient.rpc("statistiche_pubbliche_pilot");
+
+  if (error) {
+    console.warn("RPC statistiche_pubbliche_pilot non disponibile:", error);
+    return null;
+  }
+
+  return {
+    customers: Number(data?.iscritti || 0),
+    receipts: Number(data?.scontrini_caricati || 0),
+    creditRequests: Number(data?.richieste_credito_avviate || 0)
+  };
+}
+
+async function loadPublicPilotStatsFromCounts() {
+  const [customers, receipts, creditRequests] = await Promise.all([
+    countPublicRows("clienti_app_pilot"),
+    countPublicRows("scontrini_app_pilot"),
+    countPublicRows("richieste_utilizzo_credito_app_pilot")
+  ]);
+
+  return { customers, receipts, creditRequests };
+}
+
+async function countPublicRows(tableName) {
+  const { count, error } = await supabaseClient
+    .from(tableName)
+    .select("id", { count: "exact", head: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return Number(count || 0);
+}
+
+function renderPublicPilotStats(stats) {
+  const hasStats = stats && Object.values(stats).some((value) => Number(value) > 0);
+  const content = hasStats
+    ? `
+      <p class="pilot-stats__title">Credito Salute SQ e' attivo nel pilot.</p>
+      <div class="pilot-stats__grid">
+        <span><strong>${formatInteger(stats.customers)}</strong> iscritti</span>
+        <span><strong>${formatInteger(stats.receipts)}</strong> scontrini caricati</span>
+        <span><strong>${formatInteger(stats.creditRequests)}</strong> richieste credito avviate</span>
+      </div>
+    `
+    : `<p class="pilot-stats__title">Pilot attivo. Accedi per vedere il tuo credito e caricare gli scontrini.</p>`;
+
+  if (el.splashStats) {
+    el.splashStats.innerHTML = content;
+  }
+
+  if (el.publicPilotStats) {
+    el.publicPilotStats.innerHTML = content;
+  }
 }
 
 async function checkSupabaseDatabase() {
@@ -1494,17 +1578,6 @@ async function createCustomerProfileForUser(user) {
   }
 
   return data || profile;
-}
-
-function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return structuredClone(initialState);
-
-  try {
-    return { ...structuredClone(initialState), ...JSON.parse(raw) };
-  } catch {
-    return structuredClone(initialState);
-  }
 }
 
 function saveState() {
@@ -3027,6 +3100,23 @@ function canAccessTab(tabId) {
 }
 
 function renderHeader() {
+  if (!authSession?.user) {
+    el.headerClients.hidden = true;
+    el.headerConfirmed.hidden = true;
+    return;
+  }
+
+  el.headerClients.hidden = false;
+  el.headerConfirmed.hidden = false;
+
+  if (authRole === "cliente") {
+    const customerId = getCurrentCustomerIdForRole();
+    const availableCredit = customerId ? getBalances(customerId).confirmed : 0;
+    el.headerClients.textContent = "Il tuo profilo";
+    el.headerConfirmed.textContent = `${formatMoney(availableCredit)} euro SQ disponibili`;
+    return;
+  }
+
   if (authRole === "bar" && state.barReport?.metrics) {
     const metrics = state.barReport.metrics;
     el.headerClients.textContent = `${metrics.customers} clienti collegati`;
@@ -4153,6 +4243,12 @@ function formatMoney(value) {
   return roundMoney(value).toLocaleString("it-IT", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
+  });
+}
+
+function formatInteger(value) {
+  return Number(value || 0).toLocaleString("it-IT", {
+    maximumFractionDigits: 0
   });
 }
 

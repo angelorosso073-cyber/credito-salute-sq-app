@@ -7,6 +7,7 @@
   --line: #d7e2db;
   --line-strong: #b9c9c0;
   --surface-raised: #fbfcfb;
+  --text: var(--ink);
   --green: #1d6ab5;
   --green-dark: #1a3868;
   --blue: #245a86;
@@ -47,12 +48,12 @@ textarea {
 
 .topbar {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
   margin-bottom: 14px;
   border-bottom: 1px solid var(--line-strong);
-  padding: 20px 0 18px;
+  padding: 14px 0 16px;
 }
 
 h1,
@@ -83,22 +84,48 @@ h2 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
 }
 
 .topbar__brand .eyebrow {
   margin-bottom: 0;
 }
 
-.topbar__brand a {
-  display: inline-block;
+@keyframes sq-logo-tilt {
+  from {
+    transform: perspective(700px) rotateY(0deg);
+  }
+
+  to {
+    transform: perspective(700px) rotateY(360deg);
+  }
+}
+
+.topbar__logo-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(480px, 100%);
   line-height: 0;
 }
 
-.topbar__logo {
-  height: 320px;
-  width: auto;
+.topbar__logo-symbol {
+  display: block;
+  width: 36%;
+  max-width: 150px;
+  height: auto;
+  animation: sq-logo-tilt 18s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.topbar__logo-wordmark {
+  display: block;
+  width: 100%;
+  height: auto;
   flex-shrink: 0;
+  object-fit: contain;
+  margin-top: -4px;
 }
 
 .topbar__summary {
@@ -315,6 +342,48 @@ button:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.public-pilot-stats {
+  margin: 14px 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-soft);
+}
+
+.pilot-stats__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.pilot-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pilot-stats__grid span {
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.pilot-stats__grid strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--green-dark);
+  font-size: 20px;
+  line-height: 1;
 }
 
 .section-heading {
@@ -983,10 +1052,15 @@ textarea {
   .topbar {
     align-items: start;
     flex-direction: column;
+    gap: 12px;
   }
 
   .topbar__brand {
     width: 100%;
+  }
+
+  .topbar__logo-lockup {
+    width: min(340px, 100%);
   }
 
   .topbar__summary {
@@ -1037,6 +1111,55 @@ textarea {
 }
 
 /* v45 — cassiere-first & saldo pubblico */
+
+@media (max-width: 480px) {
+  .topbar {
+    gap: 8px;
+    padding: 8px 0 12px;
+  }
+
+  .topbar__brand {
+    gap: 3px;
+  }
+
+  .topbar__brand .eyebrow {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .topbar__logo-lockup {
+    width: min(250px, 100%);
+    transform: translateX(-8px);
+  }
+
+  .topbar__summary {
+    gap: 6px;
+  }
+
+  .topbar__summary span,
+  .status-pill {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .public-pilot-stats {
+    padding: 10px;
+  }
+
+  .pilot-stats__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .splash-stats .pilot-stats__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .splash-stats .pilot-stats__grid span {
+    min-height: 64px;
+    padding: 7px 5px;
+    font-size: 11px;
+  }
+}
 
 .saldo-public {
   min-height: 100vh;
@@ -1352,6 +1475,25 @@ button.small {
   text-align: center;
 }
 
+.splash-stats {
+  width: min(520px, calc(100vw - 36px));
+  text-align: center;
+}
+
+.splash-stats .pilot-stats__title {
+  color: #ffffff;
+}
+
+.splash-stats .pilot-stats__grid span {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.splash-stats .pilot-stats__grid strong {
+  color: #ffffff;
+}
+
 #splash__sub {
   color: rgba(255, 255, 255, 0.65);
   font-size: 13px;
@@ -1386,4 +1528,5 @@ button.small {
   #splash__card { animation: none; }
   #splash__dots span { animation: none; opacity: 0.5; }
   #splash { transition: none; }
+  .topbar__logo-symbol { animation: none; }
 }

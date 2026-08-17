@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Salute SQ">
     <link rel="apple-touch-icon" href="Logo.png">
-    <link rel="stylesheet" href="styles.css?v=58">
+    <link rel="stylesheet" href="styles.css?v=74">
   </head>
   <body>
     <div id="splash" aria-hidden="true">
@@ -19,7 +19,9 @@
           <img src="Logo.png" alt="Credito Salute SQ">
         </div>
         <p id="splash__name">Credito Salute SQ</p>
-        <p id="splash__sub">Pilot Bar Francofonte</p>
+        <div id="splashStats" class="splash-stats">
+          <p>Pilot attivo, dati in aggiornamento.</p>
+        </div>
       </div>
       <div id="splash__dots">
         <span></span><span></span><span></span>
@@ -39,9 +41,9 @@
     <div class="app-shell">
       <header class="topbar">
         <div class="topbar__brand">
-          <p class="eyebrow">PILOT BAR FRANCOFONTE di Merenda Michele</p>
-          <a href="./" aria-label="Vai alla home">
-            <img src="Logo.png" alt="Salute Quotidiana" class="topbar__logo">
+          <a href="./" class="topbar__logo-lockup" aria-label="Vai alla home">
+            <img src="Logo-symbol.png" alt="" class="topbar__logo-symbol" aria-hidden="true">
+            <img src="Logo-wordmark.png" alt="Salute Quotidiana" class="topbar__logo-wordmark">
           </a>
         </div>
         <div class="topbar__summary" aria-live="polite">
@@ -74,6 +76,9 @@
           </div>
           <p class="form-status full" id="authStatus">Inserisci email e password per accedere alla web app.</p>
         </form>
+        <div id="publicPilotStats" class="public-pilot-stats" aria-live="polite">
+          <p>Pilot attivo, dati in aggiornamento.</p>
+        </div>
         <details class="signup-box">
           <summary>Crea account cliente</summary>
           <form id="signupForm" class="form signup-form">
@@ -658,6 +663,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=58"></script>
+    <script src="app.js?v=75"></script>
   </body>
 </html>
