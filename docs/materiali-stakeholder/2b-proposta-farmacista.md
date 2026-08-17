@@ -1,53 +1,55 @@
-# Credito Salute SQ
+prima di fare il pdf voglio # Credito Salute SQ
 ## Proposta di adesione per la farmacia
 
 ---
 
 ## Un sistema che connette invece di competere
 
-Per oltre un secolo, una certa lettura della biologia ha sostenuto che la competizione sia la legge fondamentale della natura: i più adatti sopravvivono, i più deboli cedono il posto, e questo meccanismo produce progresso. Quella lettura ha trovato applicazione ben oltre la biologia — nel mercato, nella sanità, nell'organizzazione dei servizi al cittadino. Il risultato, nella cura delle persone, è un sistema frammentato in cui ogni attore difende il proprio perimetro, costruisce il proprio bacino di pazienti, e considera il vicino un concorrente invece che un alleato. Eppure la stessa biologia che quella lettura invocava racconta anche altro: la simbiosi, la cooperazione, il mutualismo sono meccanismi evolutivi altrettanto fondamentali della competizione. Gli organismi che sopravvivono non sono solo i più forti in senso assoluto — sono spesso quelli che hanno saputo costruire relazioni con l'ambiente che li circonda.
+Per oltre un secolo, una certa lettura della biologia ha sostenuto che la competizione sia la legge fondamentale della natura: i più adatti sopravvivono, i più deboli cedono il posto, e questo meccanismo produce progresso. Quella lettura ha trovato applicazione ben oltre la biologia — nel mercato, nella sanità, nell'organizzazione dei servizi al cittadino. Il risultato, nella cura delle persone, è un sistema frammentato in cui ogni attore difende il proprio perimetro, costruisce il proprio bacino di pazienti, e considera il vicino un concorrente invece che un alleato. Eppure la stessa biologia che quella lettura invocava racconta anche altro: la simbiosi, la cooperazione, il mutualismo sono meccanismi evolutivi altrettanto fondamentali della competizione. Gli organismi che sopravvivono non sono solo i più forti in senso assoluto — sono spesso quelli che hanno saputo costruire relazioni utili con l'ambiente che li circonda.
 
-Il Servizio Sanitario Nazionale si è ridimensionato negli ultimi decenni sotto la pressione di vincoli fiscali che hanno compresso le politiche di welfare territoriale. Le conseguenze le conosciamo: liste di attesa lunghe mesi, domicilio abbandonato, famiglie che gestiscono la cronicità da sole perché non c'è nessuna figura professionale che le accompagni. Il privato ha riempito parte di questo spazio, ma ognuno per conto proprio, senza che nessuno parlasse con nessuno.
+Il Servizio Sanitario Nazionale è stato progressivamente ridimensionato nel corso degli ultimi decenni, in parte per effetto di vincoli fiscali che hanno lasciato poco spazio alle politiche di welfare territoriale. Il risultato pratico è visibile: liste di attesa lunghe mesi, domicilio abbandonato a sé stesso, caregiver familiari lasciati soli a gestire la cronicità senza supporto professionale. Il privato ha riempito parte di questo spazio, ma lo ha fatto seguendo la logica del mercato: ogni attore per sé, nessun coordinamento, l'accesso subordinato alla capacità di spesa del paziente.
 
-Credito Salute SQ parte da un'osservazione semplice. La persona anziana che ha bisogno di cure a domicilio esiste già. Compra già i farmaci in farmacia. Ha già qualcuno in famiglia che la accudisce. Frequenta già gli stessi posti da anni. La rete c'è — solo che non è collegata. Questo programma la collega.
+Credito Salute SQ nasce da un'ipotesi diversa. Non c'è niente da conquistare. C'è una persona da assistere — e quella persona già compra i farmaci in farmacia, già ha qualcuno in famiglia che la accudisce, già frequenta gli stessi esercizi di quartiere da anni. La rete di prossimità esiste. Il programma la rende operativa, connettendo risorse che già circolano nel territorio invece di crearne di nuove dal nulla.
 
-Salute Quotidiana non compete con la farmacia, né con il medico di base. Occupa lo spazio che nessuno degli altri occupa: il domicilio del paziente cronico, nei giorni tra una visita e l'altra.
+Salute Quotidiana non compete con la farmacia. Non compete con il medico di base. Presidia lo spazio che nessuno degli altri presidi: il domicilio del paziente cronico, nei giorni tra una visita e la successiva, tra una ricetta e la prossima.
 
 ---
 
-## Perché la farmacia
+## La farmacia in questo modello
 
-Chi entra in farmacia per comprare insulina, antipertensivi o anticoagulanti — o chi ritira ogni mese i farmaci per un genitore anziano — ha già, nella maggior parte dei casi, bisogno di qualcosa di più. Un prelievo periodico. Qualcuno che misuri la pressione a domicilio, che gestisca una medicazione, che somministri una terapia iniettiva senza dover aspettare un accesso in ambulatorio.
+La farmacia ha il profilo di clientela più allineato al programma tra tutti gli esercizi commerciali di prossimità. Chi compra insulina, antipertensivi, anticoagulanti, chi ritira ogni mese i farmaci per sé o per un familiare anziano — è già, di fatto, un utente di cure continuative. Ha bisogno di prelievi periodici. Ha bisogno di qualcuno che misuri i parametri a domicilio, che gestisca una medicazione, che somministri una terapia iniettiva.
 
-La farmacia queste cose non le fa. Non le può fare. Salute Quotidiana le fa, a casa del paziente.
+La farmacia queste cose non le eroga, per definizione. Salute Quotidiana sì, e le eroga a domicilio.
 
-Il programma collega questi due momenti. La farmacia diventa il punto di accesso a un vantaggio concreto sulla salute. Salute Quotidiana eroga la prestazione. Il cliente riceve cure che spesso avrebbe rimandato, perché il costo sembrava troppo alto rispetto ad altre priorità.
+Il programma collega i due momenti: la farmacia accompagna il cliente verso un vantaggio concreto sulla salute, Salute Quotidiana eroga la prestazione, il cliente riceve cure che altrimenti avrebbe rinviato o evitato per ragioni economiche. Tutti e tre ci guadagnano qualcosa. Nessuno perde niente.
 
 ---
 
 ## Come funziona
 
-La farmacia aderente destina una parte del proprio budget promozionale a un fondo gestito da Salute Quotidiana. Da quel momento, ogni acquisto dei clienti partecipanti genera Credito SQ — pari al 15% della spesa — spendibile come sconto diretto sulle prestazioni infermieristiche a domicilio.
+La farmacia aderente destina un fondo al programma. Quel fondo viene gestito interamente da Salute Quotidiana. I clienti che partecipano accumulano Credito SQ ogni volta che acquistano in farmacia. Il credito accumulato è spendibile come sconto su prestazioni infermieristiche erogate a domicilio da Salute Quotidiana.
+
+Il titolare non gestisce nulla di sanitario. Non raccoglie dati medici aggiuntivi rispetto a quelli già trattati nell'attività ordinaria. Non organizza prestazioni. Non ha alcun rapporto professionale con l'infermiere. Il suo ruolo è uno solo: far sapere ai propri clienti di fiducia che il programma esiste, con le proprie parole.
 
 **La formula:**
 - 15% della spesa valida del cliente → Credito Salute SQ
 - 1 euro SQ → 1 euro di sconto sulle prestazioni
 
-Il ruolo del titolare si esaurisce qui: stanziona il fondo, espone il materiale, parla del programma ai clienti che già conosce. Non raccoglie dati medici, non coordina prestazioni, non risponde a domande cliniche. Se un cliente chiede qualcosa di sanitario, lo indirizza a Salute Quotidiana. Il rischio massimo è il fondo stanziato. Nessun altro costo.
-
 ---
 
 ## L'esempio in numeri
 
-Un cliente cronico che spende 50 euro al mese in farmacia accumula 7,50 euro di Credito SQ ogni mese. In cinque settimane ha coperto il costo di un prelievo periferico. In tre mesi, un controllo parametri completo a domicilio.
+Un cliente cronico che spende in media 50 euro al mese in farmacia accumula 7,50 euro di Credito SQ ogni mese. In cinque settimane ha coperto il costo di un prelievo periferico. In tre mesi ha credito sufficiente per un controllo parametri completo a domicilio.
 
-Per chi ritira i farmaci per un genitore anziano, la logica è immediata: i soldi che già spendi in farmacia diventano accesso a cure domiciliari che altrimenti pagheresti per intero — o non pagheresti affatto, rimandando.
+Per chi ritira ogni mese i farmaci per un genitore anziano, il messaggio è diretto: la spesa che già fai in farmacia ti restituisce accesso a cure domiciliari che altrimenti pagheresti per intero.
+
+Il rischio massimo per la farmacia è il fondo stanziato. Nessun costo variabile, nessuna sorpresa.
 
 ---
 
 ## Le prestazioni disponibili
 
-Le prestazioni sono eseguite a domicilio, programmate, non urgenti. Il credito copre tutto il listino.
+Il credito è spendibile su tutto il listino Salute Quotidiana. Le prestazioni sono eseguite a domicilio, programmate, non urgenti.
 
 | Prestazione | Costo |
 |---|---|
@@ -56,42 +58,60 @@ Le prestazioni sono eseguite a domicilio, programmate, non urgenti. Il credito c
 | Medicazione semplice | 13 euro |
 | Controllo parametri di base + educazione sanitaria | 16 euro |
 | Prelievo arterioso | 20 euro |
-| Medicazioni complesse | 20 euro |
-| Ulcere ipertrofiche e piede diabetico | 20 euro |
 | Gestione medicazione tracheostomia | 30 euro |
 | Catetere vescicale / cateterismo estemporaneo | 35 euro |
-| Gestione PICC (cateteri venosi centrali) | 35 euro |
 | Posizionamento e gestione sondino naso gastrico | 40 euro |
-| Posizionamento ago di Huber | 45 euro |
 
 **Servizi diagnostici — disponibili a breve, a prezzi significativamente inferiori al mercato privato:**
 
 | Prestazione | Costo SQ | Mercato privato |
 |---|---|---|
-| ECG | 30 euro | 50 euro |
+| ECG | 15,60 euro | 26 euro |
 | Holter ECG 24h | 48 euro | 80 euro |
 | Holter pressorio 24h | 42 euro | 70 euro |
 | Spirometria semplice | 30 euro | 50 euro |
 
-Il credito vale anche per un familiare convivente.
+Il cliente può usare il credito anche per un familiare convivente.
+
+---
+
+## Cosa fa il titolare
+
+**Fa:**
+- Firma il contratto di adesione con Salute Quotidiana.
+- Versa il fondo promozionale concordato.
+- Espone il materiale informativo fornito da Salute Quotidiana.
+- Parla del programma ai clienti di fiducia, con le proprie parole.
+- Riceve il report aggregato a chiusura del periodo.
+
+**Non fa:**
+- Non raccoglie dati sanitari aggiuntivi dei clienti.
+- Non organizza né coordina le prestazioni.
+- Non gestisce il credito dei singoli clienti.
+- Non ha accesso alle prestazioni utilizzate dai clienti.
+- Non risponde a domande cliniche: le domande sanitarie vanno indirizzate a Salute Quotidiana.
 
 ---
 
 ## Cosa ottiene la farmacia
 
-I clienti cronici — quelli che tornano ogni mese, quelli con cui si è costruito un rapporto nel tempo — trovano un motivo in più per restare. Non uno sconto sul prodotto, ma qualcosa che riguarda direttamente la loro salute o quella di chi accudiscono.
+I clienti cronici — quelli con la spesa più regolare e il rapporto di fiducia più consolidato — hanno un motivo in più per tornare, perché ogni acquisto si traduce in un vantaggio concreto sulla propria salute o su quella di chi accudiscono.
 
-Sul territorio, la farmacia si distingue: ha fatto qualcosa di concreto con il proprio budget promozionale, invece di regalare calendari o penne.
+Una posizione riconoscibile nel territorio: una farmacia che ha scelto di fare qualcosa di utile con il proprio budget promozionale, invece di limitarsi alla competizione sul prezzo o sull'assortimento.
 
-A fine periodo arriva un report con tutti i dati: iscritti, scontrini, credito accumulato e utilizzato, fondo residuo. Abbastanza per decidere con dati alla mano se e come andare avanti.
+Un report reale a fine periodo: quanti iscritti, quanti scontrini, quanto credito accumulato e utilizzato, fondo residuo. Dati concreti per valutare se e come continuare.
 
 ---
 
 ## Come si aderisce
 
-Si parte con un incontro. Si definiscono insieme fondo, durata e condizioni. Si firma il contratto di adesione. Salute Quotidiana fornisce il materiale da esporre e si occupa di tutto il resto — gestione del credito, relazione con i clienti, erogazione delle prestazioni.
+1. Contattare Salute Quotidiana per un incontro di presentazione.
+2. Definire fondo, durata e condizioni del periodo.
+3. Firmare il contratto di adesione.
+4. Ricevere il materiale informativo da esporre.
+5. Avviare il programma.
 
-Il titolare non deve imparare nessun sistema nuovo. Deve solo far sapere ai suoi clienti di fiducia che questa cosa esiste.
+Da quel momento, Salute Quotidiana gestisce tutto il resto.
 
 ---
 

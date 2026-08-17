@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-genera_documento_sq.py  v5
+genera_documento_sq_v6.py
 Credito Salute SQ — Documento A4 · ReportLab only
+Bozza di ristrutturazione narrativa (deck-wow + copywriting) — NON sostituisce
+genera_documento_sq.py / 9-documento-sq-v5.pdf, che restano invariati.
 """
 import sys, io, tempfile, shutil
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -20,7 +22,7 @@ from reportlab.platypus import (
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-_FINAL_OUT = Path(__file__).parent / "9-documento-sq-v5.pdf"
+_FINAL_OUT = Path(__file__).parent / "9-documento-sq-v6.pdf"
 OUT = Path(tempfile.mktemp(suffix=".pdf"))
 LOGO_FULL_PATH = Path(__file__).parent / "logo-completo.png"
 LOGO_FULL_RATIO = 779 / 494  # icona + wordmark "Salute Quotidiana" + tagline, come nell'app
@@ -67,6 +69,12 @@ BIANCO    = colors.white
 MUTED     = colors.HexColor("#6B7F94")
 MUTED_LT  = colors.HexColor("#A0B4C8")
 
+# Sfondo copertina: campionato dai pixel di sfondo di logo-completo.png
+# (grigio-ardesia neutro, media dei quattro angoli + margini laterali
+# dell'immagine) così la copertina non crea un "riquadro" visibile
+# intorno al blocco logo — il logo si fonde con la pagina.
+COVER_BG  = colors.HexColor("#4F565A")
+
 # ── Layout ────────────────────────────────────────────────────────────────────
 PW, PH = A4
 ML     = 2.0 * cm
@@ -83,13 +91,13 @@ def _S(name, **kw):
 
 ST = {
     "cover_eye":  _S("cover_eye",  fontName=FONT_BOLD, fontSize=9,  leading=13,
-                      textColor=VERDE_D, spaceAfter=6),
+                      textColor=ORO, spaceAfter=6),
     "cover_title":_S("cover_title",fontName=FONT_BOLD, fontSize=40, leading=46,
-                      textColor=BLU_DARK, spaceAfter=12),
+                      textColor=BIANCO, spaceAfter=12),
     "cover_sub":  _S("cover_sub",  fontName=FONT_BODY, fontSize=15, leading=23,
-                      textColor=GRIGIO, spaceAfter=0),
+                      textColor=MUTED_LT, spaceAfter=0),
     "cover_date": _S("cover_date", fontName=FONT_BODY, fontSize=9,  leading=13,
-                      textColor=MUTED),
+                      textColor=MUTED_LT),
     "h1":   _S("h1",  fontName=FONT_BOLD, fontSize=18, leading=24,
                 textColor=BLU, spaceBefore=0, spaceAfter=8),
     "h2":   _S("h2",  fontName=FONT_BOLD, fontSize=14, leading=20,
@@ -440,11 +448,13 @@ class SecBadge(Flowable):
 
 
 # ── Page chrome ───────────────────────────────────────────────────────────────
-# Stesso sfondo su ogni pagina, copertina compresa: stessa intestazione blu,
-# stesso piè di pagina, nessun trattamento scuro separato per la prima pagina.
+# La copertina ha sfondo scuro (colore campionato dal blocco logo, COVER_BG),
+# le pagine interne restano chiare (G_XL) — intestazione blu e piè di pagina
+# restano identici ovunque, cambia solo il fondo pagina.
 def _chrome(canv, doc):
     canv.saveState()
-    canv.setFillColor(G_XL)
+    is_cover = not hasattr(doc, 'page') or doc.page == 1
+    canv.setFillColor(COVER_BG if is_cover else G_XL)
     canv.rect(0, 0, PW, PH, fill=1, stroke=0)
     # left stripe
     canv.setFillColor(VERDE)
@@ -613,12 +623,21 @@ def build_story():
           "gli stessi squilibri: liste d'attesa più lunghe, personale insufficiente, "
           "prestazioni rinviate anno dopo anno."),
         SP(0.3),
-        P("Non è un'emergenza improvvisa, è l'effetto accumulato di anni di risorse "
-          "insufficienti rispetto ai bisogni reali della popolazione. Lo misura direttamente "
-          "l'ISTAT: una parte crescente di famiglie italiane rinuncia a curarsi. Non per "
-          "mancanza di bisogno, ma per i costi, per i tempi di attesa, per la fatica di "
-          "organizzare anche una prestazione semplice. Chi è anziano, ha mobilità ridotta o "
-          "vive in un piccolo centro lontano dai servizi resta indietro più di tutti."),
+        P("È l'effetto accumulato di anni di risorse insufficienti rispetto ai bisogni reali "
+          "della popolazione, non un'emergenza improvvisa. Lo misura direttamente l'ISTAT: "
+          "una parte crescente di famiglie italiane rinuncia a curarsi. Non per mancanza di "
+          "bisogno, ma per i costi, per i tempi di attesa, per la fatica di organizzare anche "
+          "una prestazione semplice. Chi è anziano, ha mobilità ridotta o vive in un piccolo "
+          "centro lontano dai servizi resta indietro più di tutti."),
+        SP(0.3),
+        P("Lo vediamo ogni settimana sul territorio: chi rimanda un prelievo perché in "
+          "ambulatorio ci sono settimane di attesa, chi non chiama l'infermiere a domicilio "
+          "perché pensa di non potersela permettere."),
+        SP(0.3),
+        P("Forse è successo anche a te, o a chi vive con te: quel controllo rimandato non "
+          "perché non serva, ma perché in mezzo c'erano una telefonata, un appuntamento da "
+          "prendere, un pomeriggio libero che non arrivava mai. Non è pigrizia. È la somma di "
+          "piccoli ostacoli che, uno alla volta, bastano a far slittare una cura di settimane."),
         SP(0.3),
         LeftBar([
             P("Salute Quotidiana nasce da qui. Non sostituisce il sistema sanitario pubblico "
@@ -636,7 +655,7 @@ def build_story():
     ]
 
     # ── 01 ────────────────────────────────────────────────────────────────────
-    story += sec_block("01", "Il budget promozionale non lascia nulla",
+    story += sec_block("01", "Che fine fa, oggi, il budget promozionale",
         P("Ogni anno, esercizi commerciali investono in gadget, volantini, calendari e omaggi. "
           "Il cliente li dimentica nel giro di pochi giorni. Il budget è speso, "
           "la fidelizzazione non c'è, e l'anno dopo si ricomincia da capo."),
@@ -672,17 +691,24 @@ def build_story():
     ]
 
     # ── 02 ────────────────────────────────────────────────────────────────────
-    story += sec_block("02", "Le famiglie rimandano cure che potrebbero fare adesso",
-        P("1 italiano su 3 rinuncia a curarsi. Non per scarsità di offerta sanitaria, "
-          "ma per costi, per i tempi di attesa, per la complessità organizzativa "
-          "di prenotare anche una prestazione semplice."),
+    story += sec_block("02", "Perché le famiglie rimandano cure che potrebbero fare subito",
+        P("1 italiano su 3 rinuncia a curarsi, secondo l'ISTAT. Non per mancanza di offerta "
+          "sanitaria: per i tempi di attesa e la fatica di organizzare anche una "
+          "prestazione semplice."),
         SP(0.3),
         P("Prelievi, medicazioni, iniezioni, controlli di base: prestazioni tecnicamente "
-          "semplici che molte famiglie rimandano di settimane. "
-          "Chi è anziano o ha mobilità ridotta aspetta più di tutti."),
+          "semplici che le famiglie rimandano di settimane, spesso per una telefonata "
+          "mai fatta più che per il costo vero."),
     )
     story += [
-        SP(0.5),
+        SP(0.3),
+        P("Pensa a una persona anziana che vive sola, con la vista che non è più quella di una "
+          "volta e le scale come primo ostacolo della giornata. Per lei un prelievo del sangue "
+          "non è una commissione da venti minuti: è un taxi da chiamare, un accompagnatore da "
+          "trovare, una mattinata intera. Non stupisce che finisca per rimandare. La stessa "
+          "prestazione, fatta a casa sua da un infermiere, diventa una cosa semplice: si apre "
+          "la porta, ci si siede in salotto, e in dieci minuti è fatta."),
+        SP(0.3),
         LeftBar([
             P("<b>L'opportunità:</b> è concreta e locale, per chi già serve queste famiglie "
               "ogni giorno. Non serve aspettare un cambiamento della sanità pubblica.",
@@ -692,7 +718,7 @@ def build_story():
     ]
 
     # ── 03 ────────────────────────────────────────────────────────────────────
-    story += sec_block("03", "Il budget già esiste — mancava solo dove indirizzarlo",
+    story += sec_block("03", "Lo stesso budget, indirizzato diversamente",
         P("Salute Quotidiana prende il budget promozionale di un esercizio commerciale "
           "e lo orienta verso un beneficio che i clienti ricordano: "
           "accesso a prestazioni infermieristiche domiciliari."),
@@ -729,9 +755,9 @@ def build_story():
     ]
 
     # ── 04 ────────────────────────────────────────────────────────────────────
-    story += sec_block("04", "La formula: 15% della spesa diventa credito reale",
-        P("Ogni euro speso dal cliente presso l'esercizio aderente genera credito "
-          "Credito SQ, spendibile direttamente sulle prestazioni infermieristiche."),
+    story += sec_block("04", "Il 15% di quello che spendono i tuoi clienti diventa credito vero",
+        P("Ogni euro che il cliente spende da te genera credito Credito SQ, "
+          "subito spendibile sulle prestazioni infermieristiche."),
     )
     _hw = (BODY_W - 0.5*cm) / 2
     formula_l = [
@@ -768,10 +794,10 @@ def build_story():
     story += [SP(0.35), ftbl, SP(0.5)]
 
     # ── 05 ────────────────────────────────────────────────────────────────────
-    story += sec_block("05", "Tre ruoli, zero gestione sanitaria per l'esercizio",
-        P("Il programma funziona perché ogni ruolo è separato e non si sovrappone. "
-          "L'esercizio non tocca mai nulla di sanitario."),
-    )
+    # Titolo + ruoli + screenshot tenuti insieme in un solo KeepTogether (via
+    # sec_block): se il blocco intero non entra nello spazio rimasto in pagina,
+    # scivola tutto insieme sulla pagina dopo — mai ruoli separati dagli
+    # screenshot con un vuoto in mezzo.
     cw3 = (BODY_W - 0.6*cm) / 3
     _note = ParagraphStyle("note_w", fontName=FONT_ITAL, fontSize=9,
                            textColor=BLU_LT, leading=13)
@@ -780,7 +806,7 @@ def build_story():
                  PB("•", "Stanzia il fondo promozionale","bul_w"),
                  PB("•", "Espone il materiale informativo","bul_w"),
                  PB("•", "Invita i clienti con parole proprie","bul_w"),
-                 SP(0.1), Paragraph("<i>Impegno: 3 azioni. Poi gira da solo.</i>", _note)],
+                 SP(0.1), Paragraph("<i>Impegno: 3 azioni. Poi va avanti da solo.</i>", _note)],
                 BLU, BLU_DARK, width=cw3, py=0.4*cm),
         Spacer(0.3*cm, 1),
         GradBox([P("Cliente","th"), SP(0.15),
@@ -802,18 +828,25 @@ def build_story():
         ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
         ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
-    story += [SP(0.45), roles, SP(0.5)]
+    # Immagini ridotte rispetto alla larghezza piena della colonna (cw3): a
+    # piena larghezza title+intro+ruoli+screenshot non entrano in un solo
+    # KeepTogether su una singola pagina (~23cm richiesti contro ~23.5cm
+    # disponibili, un margine troppo risicato per reggere piccoli spostamenti
+    # di testo altrove nel documento). Centrate nella colonna via hAlign.
+    SHOT_W = cw3 * 0.74
 
     def screenshot_cell(path, ratio, caption, color):
-        img = Image(str(path), width=cw3, height=cw3/ratio)
-        framed = Table([[img]], colWidths=[cw3])
+        img = Image(str(path), width=SHOT_W, height=SHOT_W/ratio)
+        framed = Table([[img]], colWidths=[SHOT_W])
+        framed.hAlign = "CENTER"
         framed.setStyle(TableStyle([
             ("BOX", (0,0),(-1,-1), 1.2, color),
             ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
             ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
         ]))
         cap_style = ParagraphStyle("shot_cap", fontName=FONT_BOLD, fontSize=9,
-                                    leading=13, textColor=color, spaceAfter=5)
+                                    leading=13, textColor=color, spaceAfter=5,
+                                    alignment=TA_CENTER)
         return [P(caption, cap_style), framed]
 
     SCREENSHOT_RATIO = 921/2048  # schermata intera del telefono, non ritagliata
@@ -832,59 +865,72 @@ def build_story():
         ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
         ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
-    story += [screenshots, SP(0.5)]
+    story += sec_block("05", "Tre ruoli distinti: tu non tocchi la parte sanitaria",
+        P("Il programma funziona perché ogni ruolo fa una cosa sola, bene. "
+          "Tu non tocchi mai nulla di sanitario. Non è il tuo lavoro."),
+        SP(0.45), roles, SP(0.5), screenshots,
+    )
+    story += [SP(0.5)]
 
     # ── 06 ────────────────────────────────────────────────────────────────────
     story.append(CondPageBreak(9*cm))
-    story += sec_hdr("06", "Dodici prestazioni a domicilio")
+    story += sec_hdr("06", "Bastano due mesi per un prelievo e una medicazione, senza pagare nulla")
     story += [
         SP(0.1),
         P("Tutte le prestazioni sono erogate da un professionista infermieristico abilitato, "
           "su appuntamento, presso il domicilio del cliente o della persona indicata. "
           "Con 100 euro al mese di acquisti abituali si accumulano 15 crediti SQ: "
           "sufficienti per un prelievo e una medicazione in due mesi, a costo zero."),
+        SP(0.3),
+        P("Dal punto di vista del cliente il percorso è breve: apre l'app, sceglie la "
+          "prestazione dal listino, indica giorno e fascia oraria che preferisce. "
+          "L'infermiere arriva a casa all'ora concordata. A fine visita basta mostrare il QR "
+          "di conferma generato dall'app: due minuti, nessuna carta da firmare, nessun "
+          "codice fiscale da ripetere al telefono."),
         SP(0.4),
-        Table(
-            [[P("Prestazioni infermieristiche a domicilio","h3"),
-              SP(0),
-              P("Telemedicina a domicilio <i>(in arrivo)</i>","h3")]],
-            colWidths=[(BODY_W-0.5*cm)/2, 0.5*cm, (BODY_W-0.5*cm)/2],
-            style=TableStyle([("LEFTPADDING",(0,0),(-1,-1),0),
-                              ("RIGHTPADDING",(0,0),(-1,-1),0),
-                              ("TOPPADDING",(0,0),(-1,-1),0),
-                              ("BOTTOMPADDING",(0,0),(-1,-1),0)])
-        ),
-        SP(0.15),
-        listino(
-            rows_inf=[
-                ("Iniezione intramuscolare I.M. (su prescrizione)", "8 €"),
-                ("Prelievo ematico periferico", "10 €"),
-                ("Medicazione semplice", "13 €"),
-                ("Controllo parametri + educazione sanitaria", "16 €"),
-                ("Prelievo arterioso", "20 €"),
-                ("Medicazioni complesse", "20 €"),
-                ("Ulcere ipertrofiche e piede diabetico", "20 €"),
-                ("Gestione medicazione tracheostomia", "30 €"),
-                ("Catetere vescicale / cateterismo estemporaneo", "35 €"),
-                ("Gestione PICC (cateteri venosi centrali)", "35 €"),
-                ("Posizionamento sondino naso gastrico", "40 €"),
-                ("Posizionamento ago di Huber", "45 €"),
-            ],
-            rows_tele=[
-                ("ECG a 12 derivazioni", "30 €"),
-                ("Holter ECG 24h", "45 €"),
-                ("Holter Pressorio 24h", "40 €"),
-                ("Spirometria semplice", "30 €"),
-            ],
-        ),
+        KeepTogether([
+            Table(
+                [[P("Prestazioni infermieristiche a domicilio","h3"),
+                  SP(0),
+                  P("Telemedicina a domicilio <i>(in arrivo)</i>","h3")]],
+                colWidths=[(BODY_W-0.5*cm)/2, 0.5*cm, (BODY_W-0.5*cm)/2],
+                style=TableStyle([("LEFTPADDING",(0,0),(-1,-1),0),
+                                  ("RIGHTPADDING",(0,0),(-1,-1),0),
+                                  ("TOPPADDING",(0,0),(-1,-1),0),
+                                  ("BOTTOMPADDING",(0,0),(-1,-1),0)])
+            ),
+            SP(0.15),
+            listino(
+                rows_inf=[
+                    ("Iniezione intramuscolare I.M. (su prescrizione)", "8 €"),
+                    ("Prelievo ematico periferico", "10 €"),
+                    ("Medicazione semplice", "13 €"),
+                    ("Controllo parametri + educazione sanitaria", "16 €"),
+                    ("Prelievo arterioso", "20 €"),
+                    ("Medicazioni complesse", "20 €"),
+                    ("Ulcere ipertrofiche e piede diabetico", "20 €"),
+                    ("Gestione medicazione tracheostomia", "30 €"),
+                    ("Catetere vescicale / cateterismo estemporaneo", "35 €"),
+                    ("Gestione PICC (cateteri venosi centrali)", "35 €"),
+                    ("Posizionamento sondino naso gastrico", "40 €"),
+                    ("Posizionamento ago di Huber", "45 €"),
+                ],
+                rows_tele=[
+                    ("ECG a 12 derivazioni", "30 €"),
+                    ("Holter ECG 24h", "48 €"),
+                    ("Holter Pressorio 24h", "42 €"),
+                    ("Spirometria semplice", "30 €"),
+                ],
+            ),
+        ]),
         SP(0.5),
     ]
 
     # ── 07 ────────────────────────────────────────────────────────────────────
-    story += sec_block("07", "Tre passi per l'esercizio, poi il programma va avanti da solo",
-        P("L'impegno per l'esercizio è minimo e si esaurisce nell'avvio. "
-          "Non è richiesto alcun training per il personale, "
-          "né alcuna gestione quotidiana delle attività sanitarie."),
+    story += sec_block("07", "Per te sono tre passi. Poi il programma cammina da solo",
+        P("Per te l'impegno si esaurisce all'avvio: tre cose, poi il programma "
+          "cammina da solo. Nessun training per il personale, nessuna gestione "
+          "sanitaria da imparare."),
     )
     story += [
         SP(0.5),
@@ -893,45 +939,54 @@ def build_story():
                   ("3","Invita\ni clienti",VERDE)], width=BODY_W),
         SP(0.55),
         LeftBar([
-            P("<b>Tutto il resto è gestito da Salute Quotidiana:</b> "
+            P("<b>Il resto lo gestiamo noi:</b> "
               "iscrizioni, verifiche, prenotazioni, prestazioni.", "body_l"),
-            P("A fine periodo: report con dati reali — iscritti, credito accumulato, "
-              "credito utilizzato, fondo residuo.", "body_l"),
+            P("A fine periodo ricevi un report con i dati veri: iscritti, credito "
+              "accumulato, credito utilizzato, fondo residuo.", "body_l"),
         ], bar_c=VERDE, bg=VERDE_LT, width=BODY_W),
         SP(0.5),
     ]
 
     # ── 08 ────────────────────────────────────────────────────────────────────
-    story += sec_block("08", "Il credito si usa per sé — o si dà a chi ne ha bisogno",
+    story += sec_block("08", "Il credito è tuo: lo usi tu, o lo regali",
         P("Il credito Salute SQ non è vincolato alla persona che l'ha accumulato. "
           "Il titolare può cedere tutto o parte del proprio credito a chiunque voglia: "
-          "un familiare, un vicino, un amico — senza vincoli di parentela o convivenza."),
+          "un familiare, un vicino, un amico, senza vincoli di parentela o convivenza."),
         SP(0.3),
         P("L'unica condizione è che il destinatario sia iscritto alla piattaforma "
           "(iscrizione gratuita, richiesta a fini statistici). "
           "Nessun abbonamento, nessuna spesa aggiuntiva."),
     )
     story += [
-        SP(0.45),
+        SP(0.3),
+        P("Immagina di avere accumulato più credito di quanto ti serva questo mese. "
+          "Con un tocco puoi girarlo a tua madre, che ha una medicazione da fare e non guida "
+          "più. O al vicino di pianerottolo, che vive solo e non lo direbbe mai a nessuno. "
+          "Non serve un grado di parentela da dimostrare: basta scegliere a chi darlo."),
+        SP(0.3),
         GradBox([
-            P("Un beneficio che si condivide, non solo un vantaggio individuale.", "callout"),
-            P("Con la cedibilità, il credito smette di essere solo del cliente "
-              "e diventa un beneficio per la comunità.", "callout_sub"),
+            P("Un beneficio pensato per essere condiviso.", "callout"),
+            P("Con la cedibilità, il credito smette di essere solo tuo "
+              "e diventa qualcosa che puoi passare a chi ne ha più bisogno.", "callout_sub"),
         ], BLU, BLU_DARK, width=BODY_W, py=0.45*cm),
         SP(0.4),
         LeftBar([
             P("<b>Lista dei Silenziosi:</b> chi vuole può donare credito in forma anonima "
-              "a un fondo condiviso. Chi ha bisogno accede compilando un questionario "
-              "riservato: la ripartizione tra beneficiari è dinamica e proporzionale "
-              "al bisogno espresso, senza tetto di spesa.", "body_l"),
+              "a un fondo condiviso. Chi ha bisogno lo dice in un questionario riservato. "
+              "Chi ne ha di più riceve prima. Nessun tetto che lo fermi.", "body_l"),
         ], bar_c=VERDE, bg=VERDE_LT, width=BODY_W),
+        SP(0.3),
+        P("È pensata per chi ha bisogno ma fatica a chiederlo: un genitore che non vuole "
+          "pesare sui figli, una persona sola che non sa a chi rivolgersi. Il questionario "
+          "resta riservato, la donazione resta anonima. Nessuno deve sapere chi ha dato "
+          "e chi ha ricevuto, tranne Salute Quotidiana, che gestisce l'abbinamento."),
         SP(0.5),
     ]
 
     # ── 09 ────────────────────────────────────────────────────────────────────
     story += sec_block("09", "Il pilot: rischio massimo già definito prima di firmare",
-        P("Il primo ciclo è un pilot a scala controllata: pensato per produrre dati concreti "
-          "tenendo il rischio al minimo."),
+        P("Il primo ciclo è un pilot piccolo apposta: vogliamo dati veri, non promesse. "
+          "E nessuno rischia più di quanto ha deciso di mettere."),
     )
     story += [
         SP(0.45),
@@ -989,7 +1044,7 @@ def build_story():
         ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
         ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
-    sez10_hdr = sec_hdr("10", "La piattaforma funziona già")
+    sez10_hdr = sec_hdr("10", "Non è una promessa: il sistema è già funzionante")
     sez10_intro = P("Si usa da qualsiasi smartphone via browser ed è installabile come app (PWA) "
                      "con un tocco, senza bisogno di training per lo staff. Ogni ruolo ha una "
                      "vista dedicata con accesso esclusivo ai propri dati.")
@@ -1004,8 +1059,8 @@ def build_story():
     # ── 11 ────────────────────────────────────────────────────────────────────
     story += sec_block("11", "Il programma partirà a breve",
         P("Il primo esercizio commerciale in assoluto ad aderire al progetto potresti essere tu. "
-          "Immagina, in termini di pubblicità, quali potenziali benefici potrebbe portare "
-          "la tua decisione di aderire."),
+          "I tuoi clienti ne parleranno in giro. E si ricorderanno che gliel'hai portato tu, "
+          "per primo."),
     )
     cta_w = (BODY_W - 0.5*cm) / 2
     cta_l = GradBox([
