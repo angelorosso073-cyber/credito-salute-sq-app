@@ -1524,9 +1524,58 @@ button.small {
   pointer-events: none;
 }
 
+#welcomeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: linear-gradient(170deg, #1d6ab5 0%, #1a3868 100%);
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+#welcomeOverlay[hidden] {
+  display: none;
+}
+
+#welcomeOverlay.welcome-overlay--hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.welcome-overlay__text {
+  color: #ffffff;
+  font-size: clamp(24px, 6vw, 34px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: center;
+  margin: 0;
+}
+
+.welcome-overlay__letter {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateY(4px);
+  animation: welcome-letter-focus 0.5s ease forwards;
+}
+
+@keyframes welcome-letter-focus {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #splash__card { animation: none; }
   #splash__dots span { animation: none; opacity: 0.5; }
   #splash { transition: none; }
+  #welcomeOverlay { transition: none; }
+  .welcome-overlay__letter { animation: none; opacity: 1; filter: none; transform: none; }
   .topbar__logo-symbol { animation: none; }
 }

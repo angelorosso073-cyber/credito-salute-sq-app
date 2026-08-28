@@ -65,6 +65,16 @@
     color: #a9c4e0;
     min-height: 20px;
   }
+  .stato--errore {
+    color: #ff6b6b;
+    font-weight: bold;
+  }
+  .codice--scaduto {
+    opacity: 0.25;
+  }
+  .qr--scaduto {
+    opacity: 0.25;
+  }
   .setup {
     margin-top: 24px;
   }
@@ -177,7 +187,22 @@
         },
         body: JSON.stringify(corpo)
       });
+      if (!risposta.ok) {
+        throw new Error(`richiesta fallita (${risposta.status})`);
+      }
       return risposta.json();
+    }
+
+    // Se un codice scade o una chiamata fallisce, il codice/QR in vista viene
+    // reso illeggibile subito: mai lasciare in schermo cifre vecchie che
+    // sembrano valide ma non lo sono piu' (il cliente le scansionerebbe convinto
+    // fossero attuali, e la verifica lato server fallirebbe sempre).
+    function invalidaCodiceVisibile(messaggio) {
+      cifreCodiceEl.classList.add("codice--scaduto");
+      qrCanvas.classList.add("qr--scaduto");
+      barraInternoEl.style.width = "0%";
+      statoEl.textContent = messaggio;
+      statoEl.classList.add("stato--errore");
     }
 
     async function aggiornaCodice() {
@@ -187,10 +212,17 @@
         return;
       }
 
-      const dati = await chiamaRpc("richiedi_codice_banco_pilot", { p_banco_token: token });
+      let dati;
+      try {
+        dati = await chiamaRpc("richiedi_codice_banco_pilot", { p_banco_token: token });
+      } catch (err) {
+        console.error("Errore chiamata richiedi_codice_banco_pilot:", err);
+        invalidaCodiceVisibile("Connessione persa: codice non aggiornato, non mostrarlo al cliente.");
+        return;
+      }
 
       if (!dati?.ok) {
-        statoEl.textContent = "Dispositivo non riconosciuto. Verifica il token.";
+        invalidaCodiceVisibile("Dispositivo non riconosciuto. Verifica il token.");
         return;
       }
 
@@ -198,7 +230,10 @@
       areaCodice.hidden = false;
       nomeBarEl.textContent = dati.bar_nome || "Bar";
       cifreCodiceEl.textContent = dati.codice;
+      cifreCodiceEl.classList.remove("codice--scaduto");
+      qrCanvas.classList.remove("qr--scaduto");
       statoEl.textContent = "Codice attivo.";
+      statoEl.classList.remove("stato--errore");
 
       try {
         disegnaQr(qrCanvas, dati.codice, 220);
@@ -218,6 +253,11 @@
         restanti -= 1;
         if (restanti < 0) {
           clearInterval(countdownTimer);
+          // Rete di sicurezza: se per qualsiasi motivo il refresh dei 15s non e'
+          // arrivato in tempo, il codice qui e' certamente fuori dalla finestra di
+          // tolleranza del server (90s). Meglio nasconderlo che rischiare che il
+          // cliente lo scansioni convinto sia ancora buono.
+          invalidaCodiceVisibile("Codice scaduto, in attesa di aggiornamento.");
         }
       };
       aggiorna();

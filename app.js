@@ -219,6 +219,8 @@ const el = {
   attivaCodiceInput: document.querySelector("#attivaCodiceInput"),
   attivaCodiceBtn: document.querySelector("#attivaCodiceBtn"),
   attivaCodiceStatus: document.querySelector("#attivaCodiceStatus"),
+  welcomeOverlay: document.querySelector("#welcomeOverlay"),
+  welcomeOverlayText: document.querySelector("#welcomeOverlayText"),
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -237,9 +239,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   ]);
   await splashMin;
   hideSplash();
+  setTimeout(showFirstVisitWelcomeOverlay, 450);
   checkSupabaseDatabase();
   await syncDataForCurrentRole();
 });
+
+// Un solo saluto per dispositivo: dopo la prima volta la promessa fatta con
+// l'animazione (formazione lettera per lettera) perderebbe senso e diventerebbe
+// solo un'attesa in piu' per chi apre l'app piu' volte al giorno durante il pilot.
+const WELCOME_OVERLAY_VISTO_KEY = "sq_benvenuto_visto";
+
+function showFirstVisitWelcomeOverlay() {
+  if (!el.welcomeOverlay || !el.welcomeOverlayText) return;
+  if (localStorage.getItem(WELCOME_OVERLAY_VISTO_KEY)) return;
+
+  const testo = "Benvenuto in Credito SQ";
+  el.welcomeOverlayText.innerHTML = "";
+  let letterCount = 0;
+  testo.split("").forEach((carattere) => {
+    const span = document.createElement("span");
+    if (carattere === " ") {
+      span.textContent = " ";
+      span.style.display = "inline-block";
+    } else {
+      span.textContent = carattere;
+      span.className = "welcome-overlay__letter";
+      span.style.animationDelay = `${letterCount * 0.045}s`;
+      letterCount += 1;
+    }
+    el.welcomeOverlayText.appendChild(span);
+  });
+
+  el.welcomeOverlay.hidden = false;
+  localStorage.setItem(WELCOME_OVERLAY_VISTO_KEY, "1");
+
+  const revealMs = (letterCount - 1) * 45 + 500;
+  const holdMs = 1300;
+  setTimeout(() => {
+    el.welcomeOverlay.classList.add("welcome-overlay--hide");
+    el.welcomeOverlay.addEventListener("transitionend", () => {
+      el.welcomeOverlay.hidden = true;
+    }, { once: true });
+  }, revealMs + holdMs);
+}
 
 function hideSplash() {
   const splash = document.getElementById("splash");
