@@ -794,87 +794,8 @@ def build_story():
     story += [SP(0.35), ftbl, SP(0.5)]
 
     # ── 05 ────────────────────────────────────────────────────────────────────
-    # Titolo + ruoli + screenshot tenuti insieme in un solo KeepTogether (via
-    # sec_block): se il blocco intero non entra nello spazio rimasto in pagina,
-    # scivola tutto insieme sulla pagina dopo — mai ruoli separati dagli
-    # screenshot con un vuoto in mezzo.
-    cw3 = (BODY_W - 0.6*cm) / 3
-    _note = ParagraphStyle("note_w", fontName=FONT_ITAL, fontSize=9,
-                           textColor=BLU_LT, leading=13)
-    roles = Table([[
-        GradBox([P("Esercizio commerciale","th"), SP(0.15),
-                 PB("•", "Stanzia il fondo promozionale","bul_w"),
-                 PB("•", "Espone il materiale informativo","bul_w"),
-                 PB("•", "Invita i clienti con parole proprie","bul_w"),
-                 SP(0.1), Paragraph("<i>Impegno: 3 azioni. Poi va avanti da solo.</i>", _note)],
-                BLU, BLU_DARK, width=cw3, py=0.4*cm),
-        Spacer(0.3*cm, 1),
-        GradBox([P("Cliente","th"), SP(0.15),
-                 PB("•", "Si iscrive una sola volta","bul_w"),
-                 PB("•", "Carica gli scontrini via browser","bul_w"),
-                 PB("•", "Accumula credito verificato","bul_w"),
-                 PB("•", "Usa il credito quando vuole","bul_w")],
-                BLU_M, BLU, width=cw3, py=0.4*cm),
-        Spacer(0.3*cm, 1),
-        GradBox([P("Salute Quotidiana","th"), SP(0.15),
-                 PB("•", "Gestisce iscrizioni e verifiche","bul_w"),
-                 PB("•", "Amministra il fondo","bul_w"),
-                 PB("•", "Organizza prenotazioni e prestazioni","bul_w"),
-                 PB("•", "Produce il report periodico","bul_w")],
-                VERDE, VERDE_D, width=cw3, py=0.4*cm),
-    ]], colWidths=[cw3, 0.3*cm, cw3, 0.3*cm, cw3])
-    roles.setStyle(TableStyle([
-        ("VALIGN",(0,0),(-1,-1),"TOP"),
-        ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
-        ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
-    ]))
-    # Immagini ridotte rispetto alla larghezza piena della colonna (cw3): a
-    # piena larghezza title+intro+ruoli+screenshot non entrano in un solo
-    # KeepTogether su una singola pagina (~23cm richiesti contro ~23.5cm
-    # disponibili, un margine troppo risicato per reggere piccoli spostamenti
-    # di testo altrove nel documento). Centrate nella colonna via hAlign.
-    SHOT_W = cw3 * 0.74
-
-    def screenshot_cell(path, ratio, caption, color):
-        img = Image(str(path), width=SHOT_W, height=SHOT_W/ratio)
-        framed = Table([[img]], colWidths=[SHOT_W])
-        framed.hAlign = "CENTER"
-        framed.setStyle(TableStyle([
-            ("BOX", (0,0),(-1,-1), 1.2, color),
-            ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
-            ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
-        ]))
-        cap_style = ParagraphStyle("shot_cap", fontName=FONT_BOLD, fontSize=9,
-                                    leading=13, textColor=color, spaceAfter=5,
-                                    alignment=TA_CENTER)
-        return [P(caption, cap_style), framed]
-
-    SCREENSHOT_RATIO = 921/2048  # schermata intera del telefono, non ritagliata
-    screenshots = Table([[
-        screenshot_cell(Path(__file__).parent / "screenshot-bar.png", SCREENSHOT_RATIO,
-                         "Cosa vede l'esercizio", BLU_DARK),
-        Spacer(0.3*cm, 1),
-        screenshot_cell(Path(__file__).parent / "screenshot-cliente.png", SCREENSHOT_RATIO,
-                         "Cosa vede il cliente", BLU),
-        Spacer(0.3*cm, 1),
-        screenshot_cell(Path(__file__).parent / "screenshot-salute-quotidiana.png", SCREENSHOT_RATIO,
-                         "Cosa vede Salute Quotidiana", VERDE_D),
-    ]], colWidths=[cw3, 0.3*cm, cw3, 0.3*cm, cw3])
-    screenshots.setStyle(TableStyle([
-        ("VALIGN",(0,0),(-1,-1),"TOP"),
-        ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
-        ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
-    ]))
-    story += sec_block("05", "Tre ruoli distinti: tu non tocchi la parte sanitaria",
-        P("Il programma funziona perché ogni ruolo fa una cosa sola, bene. "
-          "Tu non tocchi mai nulla di sanitario. Non è il tuo lavoro."),
-        SP(0.45), roles, SP(0.5), screenshots,
-    )
-    story += [SP(0.5)]
-
-    # ── 06 ────────────────────────────────────────────────────────────────────
     story.append(CondPageBreak(9*cm))
-    story += sec_hdr("06", "Bastano due mesi per un prelievo e una medicazione, senza pagare nulla")
+    story += sec_hdr("05", "Bastano due mesi per un prelievo e una medicazione, senza pagare nulla")
     story += [
         SP(0.1),
         P("Tutte le prestazioni sono erogate da un professionista infermieristico abilitato, "
@@ -926,8 +847,8 @@ def build_story():
         SP(0.5),
     ]
 
-    # ── 07 ────────────────────────────────────────────────────────────────────
-    story += sec_block("07", "Per te sono tre passi. Poi il programma cammina da solo",
+    # ── 06 ────────────────────────────────────────────────────────────────────
+    story += sec_block("06", "Per te sono tre passi. Poi il programma cammina da solo",
         P("Per te l'impegno si esaurisce all'avvio: tre cose, poi il programma "
           "cammina da solo. Nessun training per il personale, nessuna gestione "
           "sanitaria da imparare."),
@@ -947,8 +868,8 @@ def build_story():
         SP(0.5),
     ]
 
-    # ── 08 ────────────────────────────────────────────────────────────────────
-    story += sec_block("08", "Il credito è tuo: lo usi tu, o lo regali",
+    # ── 07 ────────────────────────────────────────────────────────────────────
+    story += sec_block("07", "Il credito è tuo: lo usi tu, o lo regali",
         P("Il credito Salute SQ non è vincolato alla persona che l'ha accumulato. "
           "Il titolare può cedere tutto o parte del proprio credito a chiunque voglia: "
           "un familiare, un vicino, un amico, senza vincoli di parentela o convivenza."),
@@ -983,8 +904,8 @@ def build_story():
         SP(0.5),
     ]
 
-    # ── 09 ────────────────────────────────────────────────────────────────────
-    story += sec_block("09", "Il pilot: rischio massimo già definito prima di firmare",
+    # ── 08 ────────────────────────────────────────────────────────────────────
+    story += sec_block("08", "Il pilot: rischio massimo già definito prima di firmare",
         P("Il primo ciclo è un pilot piccolo apposta: vogliamo dati veri, non promesse. "
           "E nessuno rischia più di quanto ha deciso di mettere."),
     )
@@ -1010,13 +931,14 @@ def build_story():
         SP(0.5),
     ]
 
-    # ── 10 ────────────────────────────────────────────────────────────────────
-    # Titolo + tabella tenuti insieme in un solo KeepTogether: con solo l'intro
-    # protetta (come faceva sec_block da solo), il titolo puo' restare orfano in
-    # fondo pagina mentre la tabella scivola su quella dopo — successo davvero
-    # dopo aver allungato la sezione 05 con gli screenshot.
+    # ── 09 ────────────────────────────────────────────────────────────────────
+    # Titolo + tabella ruoli + screenshot tenuti insieme in un solo KeepTogether
+    # (via sec_block): se il blocco intero non entra nello spazio rimasto in
+    # pagina, scivola tutto insieme sulla pagina dopo. Immagini ridotte al 74%
+    # della colonna (SHOT_W) per starci in un'unica pagina insieme a titolo,
+    # intro e tabella ruoli.
     cw3b = (BODY_W - 0.6*cm) / 3
-    _roles10 = [
+    _roles09 = [
         ("Cliente",           BLU,   BLU_DARK, ["Saldo credito in tempo reale",
                                                  "Caricamento scontrino con foto",
                                                  "Storico movimenti e scontrini",
@@ -1032,7 +954,7 @@ def build_story():
                                                  "Report completo per esercizio"]),
     ]
     p_cells = []
-    for title, tc, bc, bullets in _roles10:
+    for title, tc, bc, bullets in _roles09:
         rows = [P(title, "th"), SP(0.12)] + [PB("•", b, "bul_w") for b in bullets]
         p_cells.append(GradBox(rows, tc, bc, width=cw3b, py=0.4*cm))
     pt = Table(
@@ -1044,20 +966,52 @@ def build_story():
         ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
         ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
-    sez10_hdr = sec_hdr("10", "Non è una promessa: il sistema è già funzionante")
-    sez10_intro = P("Si usa da qualsiasi smartphone via browser ed è installabile come app (PWA) "
+
+    SHOT_W = cw3b * 0.74
+
+    def screenshot_cell(path, ratio, caption, color):
+        img = Image(str(path), width=SHOT_W, height=SHOT_W/ratio)
+        framed = Table([[img]], colWidths=[SHOT_W])
+        framed.hAlign = "CENTER"
+        framed.setStyle(TableStyle([
+            ("BOX", (0,0),(-1,-1), 1.2, color),
+            ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+            ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
+        ]))
+        cap_style = ParagraphStyle("shot_cap", fontName=FONT_BOLD, fontSize=9,
+                                    leading=13, textColor=color, spaceAfter=5,
+                                    alignment=TA_CENTER)
+        return [P(caption, cap_style), framed]
+
+    SCREENSHOT_RATIO = 921/2048  # schermata intera del telefono, non ritagliata
+    screenshots = Table([[
+        screenshot_cell(Path(__file__).parent / "screenshot-cliente.png", SCREENSHOT_RATIO,
+                         "Cosa vede il cliente", BLU_DARK),
+        Spacer(0.3*cm, 1),
+        screenshot_cell(Path(__file__).parent / "screenshot-bar.png", SCREENSHOT_RATIO,
+                         "Cosa vede l'esercizio", BLU),
+        Spacer(0.3*cm, 1),
+        screenshot_cell(Path(__file__).parent / "screenshot-salute-quotidiana.png", SCREENSHOT_RATIO,
+                         "Cosa vede Salute Quotidiana", VERDE_D),
+    ]], colWidths=[cw3b, 0.3*cm, cw3b, 0.3*cm, cw3b])
+    screenshots.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
+        ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+        ("TOPPADDING",(0,0),(-1,-1),0), ("BOTTOMPADDING",(0,0),(-1,-1),0),
+    ]))
+
+    sez09_intro = P("Si usa da qualsiasi smartphone via browser ed è installabile come app (PWA) "
                      "con un tocco, senza bisogno di training per lo staff. Ogni ruolo ha una "
                      "vista dedicata con accesso esclusivo ai propri dati.")
-    sez10_caption = P("Stack: HTML/CSS/JS + Supabase, installabile come PWA su qualsiasi "
+    sez09_caption = P("Stack: HTML/CSS/JS + Supabase, installabile come PWA su qualsiasi "
                        "smartphone, anche datato.", "caption")
-    story += [
-        CondPageBreak(15*cm),
-        KeepTogether(sez10_hdr + [sez10_intro, SP(0.4), pt, SP(0.3), sez10_caption]),
-        SP(0.5),
-    ]
+    story += sec_block("09", "Non è una promessa: il sistema è già funzionante",
+        sez09_intro, SP(0.4), pt, SP(0.5), screenshots, SP(0.3), sez09_caption,
+    )
+    story += [SP(0.5)]
 
-    # ── 11 ────────────────────────────────────────────────────────────────────
-    story += sec_block("11", "Il programma partirà a breve",
+    # ── 10 ────────────────────────────────────────────────────────────────────
+    story += sec_block("10", "Il programma partirà a breve",
         P("Il primo esercizio commerciale in assoluto ad aderire al progetto potresti essere tu. "
           "I tuoi clienti ne parleranno in giro. E si ricorderanno che gliel'hai portato tu, "
           "per primo."),
