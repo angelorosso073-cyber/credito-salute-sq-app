@@ -407,6 +407,28 @@
                   <pre id="receiptOcrText"></pre>
                 </details>
               </div>
+              <div class="codice-banco-area full">
+                <p class="form-label">Codice del banco</p>
+                <p class="notice full">
+                  Al banco del bar trovi un codice a 6 cifre che cambia ogni 90 secondi. Digitalo o inquadra il QR
+                  mentre carichi lo scontrino: dimostra che sei nel locale in questo momento.
+                </p>
+                <label>
+                  Codice (6 cifre)
+                  <input name="codiceBanco" id="codiceBancoInput" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="off">
+                </label>
+                <div class="camera-tool__actions">
+                  <button type="button" class="secondary" id="openCodiceBancoScan">Inquadra il QR del banco</button>
+                  <button type="button" class="secondary" id="closeCodiceBancoScan" disabled>Chiudi scanner</button>
+                </div>
+                <div class="qr-scan-preview" id="codiceBancoScanPreview" hidden>
+                  <video id="codiceBancoScanVideo" autoplay playsinline muted></video>
+                </div>
+                <canvas id="codiceBancoScanCanvas" hidden></canvas>
+                <p class="form-status full" id="codiceBancoStatus">
+                  Non hai il codice sottomano? Puoi comunque inviare: il credito resta visibile ma non spendibile finche' non torni al bar per attivarlo.
+                </p>
+              </div>
               <label class="checkbox full">
                 <input type="checkbox" name="validConsumption">
                 <span>Confermo che l'importo riguarda solo consumazioni del bar, senza scommesse, giocate, ricariche o vincite.</span>
@@ -415,28 +437,6 @@
               <p class="form-status full" id="receiptSubmitStatus">Pronto per l'invio dopo foto, dati e conferma consumazione.</p>
               <button class="primary full" type="submit">Invia scontrino</button>
             </form>
-            <div class="codice-banco-area full">
-              <p class="form-label">Codice del banco</p>
-              <p class="notice full">
-                Al banco del bar trovi un codice a 6 cifre che cambia ogni 90 secondi. Digitalo o inquadra il QR
-                mentre carichi lo scontrino: dimostra che sei nel locale in questo momento.
-              </p>
-              <label>
-                Codice (6 cifre)
-                <input name="codiceBanco" id="codiceBancoInput" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="off">
-              </label>
-              <div class="camera-tool__actions">
-                <button type="button" class="secondary" id="openCodiceBancoScan">Inquadra il QR del banco</button>
-                <button type="button" class="secondary" id="closeCodiceBancoScan" disabled>Chiudi scanner</button>
-              </div>
-              <div class="qr-scan-preview" id="codiceBancoScanPreview" hidden>
-                <video id="codiceBancoScanVideo" autoplay playsinline muted></video>
-              </div>
-              <canvas id="codiceBancoScanCanvas" hidden></canvas>
-              <p class="form-status full" id="codiceBancoStatus">
-                Non hai il codice sottomano? Puoi comunque inviare: il credito resta visibile ma non spendibile finche' non torni al bar per attivarlo.
-              </p>
-            </div>
           </details>
         </section>
 
@@ -666,6 +666,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=2"></script>
-    <script src="app.js?v=75"></script>
+    <script src="app.js?v=76"></script>
   </body>
 </html>
