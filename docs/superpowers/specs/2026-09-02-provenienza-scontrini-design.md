@@ -59,6 +59,15 @@ barista per un cliente anziano finisce quindi `codice_banco_mancante`, con
 l'invito ad "attivarlo al bar" rivolto a chi non ha smartphone ed era gia' al
 bar. Quel credito scade dopo 12 giorni senza che nessuno possa attivarlo.
 
+**Terzo difetto scoperto:** nella funzione `registra_scontrino_pilot` sia la
+convalida della matricola sia il controllo anti-duplicato si trovano dentro un
+unico `IF matricola_normalizzata IS NOT NULL`. Quando la matricola non arriva,
+il controllo sui doppioni non viene eseguito affatto. Poiche' il flusso cassiere
+non trasmette mai la matricola, oggi **nessuno scontrino caricato dal banco e'
+protetto dai doppioni**: lo stesso scontrino puo' essere inserito due volte per
+semplice distrazione, e l'unico limite che interviene e' il tetto di sei
+scontrini al giorno.
+
 ## Decisioni prese
 
 - **Modello di minaccia**: furbizia deliberata, gia' in questa fase del pilot.
@@ -192,6 +201,47 @@ L'importo esce dalla chiave, in tutti e tre i punti dove compare:
 
 Nuova chiave: `matricola_rt + numero_documento + data_scontrino`, sempre
 escludendo `stato = 'rifiutato'`.
+
+### 4-bis. La matricola viene ricavata dal server quando non arriva
+
+Il controllo anti-duplicato si basa sulla matricola del registratore. Se la
+matricola manca, oggi il controllo viene saltato del tutto, e questo lascia
+scoperti tutti gli scontrini caricati dal banco (vedi il terzo difetto
+scoperto).
+
+La matricola pero' e' gia' registrata nel database, nella tabella
+`registratori_telematici`, associata a ciascun esercizio. Il server non ha
+alcun bisogno di riceverla dal client: puo' leggerla da li'.
+
+La correzione consiste quindi nel ricavarla quando non viene trasmessa:
+
+```sql
+IF matricola_normalizzata IS NULL THEN
+  SELECT UPPER(rt.matricola) INTO matricola_normalizzata
+  FROM public.registratori_telematici rt
+  WHERE rt.bar_id = p_bar_id AND rt.attivo = true;
+  -- Nessun LIMIT 1: con piu' registratori attivi la SELECT INTO lascia
+  -- comunque un solo valore, quindi il caso va reso esplicito.
+END IF;
+```
+
+Con un solo registratore attivo per esercizio, che e' la situazione del bar
+pilota, il valore e' univoco e il controllo sui doppioni torna a funzionare
+anche per i caricamenti fatti dal banco, senza che il barista debba fare niente
+di diverso.
+
+Se un esercizio avesse piu' registratori attivi non esisterebbe un valore
+univoco da ricavare. In quel caso la matricola resta vuota e il controllo sui
+doppioni resta inattivo per quell'esercizio, esattamente come oggi. Va scritto
+nel codice in modo esplicito, con un commento, perche' e' una rinuncia
+consapevole e non una dimenticanza: quando arrivera' un esercizio con due
+casse, la scelta andra' ripresa in mano.
+
+Nota: la matricola cosi' ricavata viene salvata sulla riga dello scontrino. Non
+e' una dichiarazione di aver letto quel numero dalla fotografia, ma
+l'indicazione dell'esercizio da cui lo scontrino proviene. Il campo aveva gia'
+questo significato dopo v55, quando la compilazione automatica lato client ha
+smesso di leggerlo dallo scontrino.
 
 **La migrazione non e' indolore**: esistono gia' righe che violano la nuova chiave
 (le due letture dello stesso scontrino). L'indice unico fallirebbe. Quindi il file
