@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v76";
+const APP_VERSION = "v77";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -1869,7 +1869,7 @@ async function submitReceipt(event) {
 
   const duplicate = findDuplicateReceipt(receipt);
   if (duplicate) {
-    stopReceiptSubmit("Questo scontrino risulta gia' caricato: stessa data, numero documento e importo.");
+    stopReceiptSubmit("Questo scontrino risulta gia' caricato: stesso esercizio, numero documento e data.");
     return;
   }
 
@@ -1905,6 +1905,14 @@ async function submitReceipt(event) {
   if (supabaseResult.autoApproved) {
     setReceiptSubmitStatus("Credito accreditato automaticamente.", "success");
     showToast("Credito accreditato.");
+  } else if (supabaseResult.motivoSospensione === "provenienza_da_verificare") {
+    // Nessuna accusa: la causa piu' probabile e' una fotografia poco leggibile,
+    // non un tentativo di imbroglio.
+    setReceiptSubmitStatus(
+      "Scontrino ricevuto. Prima di accreditare il credito controlliamo la foto: se e' tutto in ordine lo trovi accreditato a breve.",
+      "success"
+    );
+    showToast("Scontrino ricevuto, in controllo.");
   } else if (supabaseResult.motivoSospensione === "codice_banco_mancante") {
     const scadenza = supabaseResult.sospesoScadutoIl
       ? new Date(supabaseResult.sospesoScadutoIl).toLocaleDateString("it-IT")
@@ -2244,8 +2252,8 @@ async function saveReceiptToSupabase(receipt, duplicate, validation) {
   if (error) {
     console.error("Errore salvataggio scontrino Supabase:", error);
     const messaggiErrore = {
-      "scontrino duplicato: stessa matricola, numero documento, data e importo":
-        "Questo scontrino risulta gia' caricato (stessa matricola, numero documento, data e importo).",
+      "scontrino duplicato: stessa matricola, numero documento e data":
+        "Questo scontrino risulta gia' caricato (stesso registratore, numero documento e data).",
       "matricola registratore non riconosciuta per questo esercizio":
         "Matricola non riconosciuta: controlla di averla copiata correttamente dallo scontrino.",
       "data scontrino precedente all'avvio del programma":
@@ -3019,13 +3027,15 @@ function setErogazioneSilenziosiMessage(message, status) {
 
 function findDuplicateReceipt(receipt) {
   const documentNumber = cleanText(receipt.documentNumber).toLowerCase();
-  const amount = roundMoney(receipt.amount);
 
+  // L'importo non fa parte della chiave, come sul server: lo stesso scontrino
+  // e' stato accettato due volte perche' l'OCR ne aveva letto il totale una
+  // volta 1,20 e una volta 1.28. Stesso esercizio, stesso numero documento e
+  // stessa data significano stesso scontrino, qualunque cifra sia stata letta.
   return state.receipts.find((item) => (
     item.barName === receipt.barName &&
     item.receiptDate === receipt.receiptDate &&
     cleanText(item.documentNumber).toLowerCase() === documentNumber &&
-    roundMoney(item.amount) === amount &&
     item.status !== "rejected"
   ));
 }
