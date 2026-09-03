@@ -320,15 +320,21 @@ HAVING count(*) > 1
 ORDER BY s.data_scontrino DESC;
 
 -- ---------------------------------------------------------------------------
--- PARTE 2 - Bonifica. Tiene la riga piu' recente di ogni gruppo e rifiuta le
--- altre. Eseguire solo dopo aver letto l'anteprima.
+-- PARTE 2 - Bonifica. Di ogni gruppo tiene una riga sola e rifiuta le altre.
+-- Eseguire solo dopo aver letto l'anteprima.
+--
+-- Quale riga viene tenuta: prima le confermate, poi a parita' la piu' recente.
+-- L'ordine conta. Tenere semplicemente la piu' recente rischierebbe, in un
+-- gruppo dove la riga vecchia e' gia' confermata e la nuova e' ancora da
+-- verificare, di rifiutare un credito gia' accreditato al cliente: il danno
+-- peggiore che questa bonifica possa fare.
 -- ---------------------------------------------------------------------------
 WITH ordinati AS (
   SELECT
     s.id,
     row_number() OVER (
       PARTITION BY s.matricola_rt, s.numero_documento, s.data_scontrino
-      ORDER BY s.created_at DESC
+      ORDER BY (s.stato = 'confermato') DESC, s.created_at DESC
     ) AS posizione
   FROM public.scontrini s
   WHERE s.matricola_rt IS NOT NULL
@@ -797,6 +803,29 @@ Atteso: `stato = confermato`, `motivo_sospensione` nullo, `punteggio_impronta` i
 git add docs/supabase-provenienza-e-chiave-duplicato.sql
 git commit -m "Provenienza verificata sul server e chiave anti-duplicato senza importo"
 ```
+
+**Come tornare indietro se qualcosa va storto**
+
+Questo task sostituisce la funzione che registra gli scontrini: se smettesse
+di funzionare, nessuno potrebbe piu' caricare nulla. La versione precedente
+della funzione e' integra nel repository, in
+`docs/supabase-foto-scontrini-storage.sql`, sezione 4. Per tornare indietro
+basta rilanciare quella sezione nell'SQL Editor: `CREATE OR REPLACE` riporta
+la funzione com'era.
+
+Anche l'indice va riportato alla forma vecchia, altrimenti resterebbe piu'
+severo di quanto la funzione ripristinata si aspetti:
+
+```sql
+DROP INDEX IF EXISTS idx_scontrini_chiave_duplicato;
+CREATE UNIQUE INDEX idx_scontrini_chiave_duplicato
+  ON public.scontrini (matricola_rt, numero_documento, data_scontrino, importo_dichiarato)
+  WHERE matricola_rt IS NOT NULL AND stato <> 'rifiutato';
+```
+
+Le colonne aggiunte (`punteggio_impronta`) e il valore in piu' ammesso in
+`motivo_sospensione` possono restare: non danno fastidio alla versione
+precedente della funzione, che semplicemente non li usa.
 
 ---
 
