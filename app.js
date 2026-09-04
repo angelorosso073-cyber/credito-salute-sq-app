@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v77";
+const APP_VERSION = "v78";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -776,6 +776,7 @@ async function refreshPilotDataFromSupabase() {
 
     if (authRole === "bar") {
       await loadBarReportFromSupabase();
+      await loadPilotCustomersFromSupabase();
       return;
     }
 
