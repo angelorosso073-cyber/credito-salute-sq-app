@@ -1,5 +1,5 @@
 const STORAGE_KEY = "creditoSaluteSqPilot";
-const APP_VERSION = "v78";
+const APP_VERSION = "v79";
 const CREDIT_RATE = 0.15;
 const AUTH_REQUEST_TIMEOUT_MS = 25000;
 const BAR_NAME = "Bar pilota Francofonte";
@@ -4504,6 +4504,10 @@ function handleCassiereSearch(event) {
   if (event && event.type !== "keydown") event.preventDefault?.();
   const query = (el.cassiereSearchInput?.value || "").trim().toLowerCase();
   if (!query) return;
+  if (query.length < 2) {
+    if (el.cassiereResults) el.cassiereResults.innerHTML = `<p class="form-status" data-status="error">Scrivi almeno 2 caratteri per cercare.</p>`;
+    return;
+  }
   const matches = state.customers.filter((c) =>
     `${c.firstName} ${c.lastName}`.toLowerCase().includes(query) ||
     normalizePhone(c.phone).includes(normalizePhone(query))
